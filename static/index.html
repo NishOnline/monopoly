@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Richup.io - Online Multiplayer Board Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <a href="/" class="brand-logo">
+        <div class="logo-icon">🎲</div>
+        <span>Richup<span class="accent">.io</span></span>
+      </a>
+      <div class="room-badge" id="nav-room-badge" style="display: none;">
+        <span>ROOM</span>
+        <span class="code" id="nav-room-code">-----</span>
+        <button class="copy-btn" id="btn-copy-room" title="Copy Room Invite Link">📋 Copy</button>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div class="jackpot-pill" id="nav-jackpot-pill" style="display: none;">
+        <span>🅿️ Jackpot:</span>
+        <span id="jackpot-pool-amount">$0</span>
+      </div>
+      <div class="spectator-pill" id="nav-spectator-pill" style="display: none;">
+        <span>👁️ Spectating Game</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <button class="icon-btn" id="btn-sound-toggle" title="Toggle Sound">🔊</button>
+      <button class="icon-btn" id="btn-rules" title="Game Rules & Help">ℹ️</button>
+      <button class="icon-btn" id="btn-fullscreen" title="Toggle Fullscreen">⛶</button>
+    </div>
+  </header>
+
+  <!-- Viewport Container -->
+  <main class="app-container">
+
+    <!-- Screen 1: Welcome & Lobby Screen -->
+    <section class="screen active" id="screen-welcome">
+      <div id="lobby-screen">
+        <div class="lobby-box">
+          <div class="lobby-header">
+            <h1>Play Richup Online</h1>
+            <p>Fast, competitive multiplayer property trading game with friends and bots</p>
+          </div>
+
+          <!-- Initial Create / Join View -->
+          <div id="lobby-welcome-view">
+            <div class="lobby-tabs">
+              <button class="lobby-tab active" data-target="tab-create">Create Game</button>
+              <button class="lobby-tab" data-target="tab-join">Join With Code</button>
+            </div>
+
+            <div class="lobby-body">
+              <!-- Create Game Pane -->
+              <div class="tab-pane active" id="tab-create">
+                <div class="form-group">
+                  <label for="input-player-name">Your Nickname</label>
+                  <input type="text" id="input-player-name" class="input-text" placeholder="Enter your name" maxlength="16" value="Tycoon">
+                </div>
+
+                <div class="form-group">
+                  <label>Choose Token Avatar</label>
+                  <div class="avatar-selector">
+                    <div class="avatar-opt selected" data-avatar="🚗">🚗</div>
+                    <div class="avatar-opt" data-avatar="🚀">🚀</div>
+                    <div class="avatar-opt" data-avatar="🎩">🎩</div>
+                    <div class="avatar-opt" data-avatar="🐶">🐶</div>
+                    <div class="avatar-opt" data-avatar="🐱">🐱</div>
+                    <div class="avatar-opt" data-avatar="⛵">⛵</div>
+                    <div class="avatar-opt" data-avatar="💎">💎</div>
+                    <div class="avatar-opt" data-avatar="👑">👑</div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Choose Player Color</label>
+                  <div class="color-selector">
+                    <div class="color-opt selected" style="background-color: #ef4444;" data-color="#ef4444"></div>
+                    <div class="color-opt" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+                    <div class="color-opt" style="background-color: #10b981;" data-color="#10b981"></div>
+                    <div class="color-opt" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+                    <div class="color-opt" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
+                    <div class="color-opt" style="background-color: #ec4899;" data-color="#ec4899"></div>
+                    <div class="color-opt" style="background-color: #06b6d4;" data-color="#06b6d4"></div>
+                    <div class="color-opt" style="background-color: #f97316;" data-color="#f97316"></div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Game Visibility</label>
+                  <div class="privacy-toggle-group" id="privacy-toggle-create">
+                    <button type="button" class="privacy-btn active" id="btn-privacy-private" data-val="false">
+                      🔒 Private (Default)
+                    </button>
+                    <button type="button" class="privacy-btn" id="btn-privacy-public" data-val="true">
+                      🌐 Public (Listed)
+                    </button>
+                  </div>
+                  <input type="hidden" id="input-room-public" value="false">
+                </div>
+
+                <button class="btn-primary" id="btn-create-room">
+                  <span>Create Private Room</span> 🚀
+                </button>
+              </div>
+
+              <!-- Join Game Pane -->
+              <div class="tab-pane" id="tab-join">
+                <div class="form-group">
+                  <label for="input-join-name">Your Nickname</label>
+                  <input type="text" id="input-join-name" class="input-text" placeholder="Enter your name" maxlength="16" value="Tycoon">
+                </div>
+
+                <div class="form-group">
+                  <label for="input-room-code">5-Letter Room Code</label>
+                  <input type="text" id="input-room-code" class="input-text" placeholder="e.g. ABCDE" maxlength="6" style="text-transform:uppercase;font-family:monospace;letter-spacing:2px;font-weight:700;">
+                </div>
+
+                <button class="btn-primary" id="btn-join-room">
+                  <span>Join Room</span> 🚪
+                </button>
+
+                <div style="margin-top:24px;">
+                  <label style="font-size:0.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Open Public Games</label>
+                  <div id="public-rooms-list" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- In-Room Lobby View (Once Connected) -->
+          <div id="room-lobby-view">
+            <div class="lobby-body">
+              <div class="room-players-section">
+                <div class="section-title">
+                  <span>Players in Lobby</span>
+                  <span style="font-size:0.85rem;color:var(--text-muted);">Max 6 Players</span>
+                </div>
+                <div class="lobby-players-grid" id="lobby-players-grid">
+                  <!-- Populated via JS -->
+                </div>
+              </div>
+
+              <!-- Host Settings Grid -->
+              <div class="room-settings-grid">
+                <div class="setting-item">
+                  <label for="setting-cash">Starting Cash</label>
+                  <select id="setting-cash" class="setting-select">
+                    <option value="1000">$1,000</option>
+                    <option value="1500" selected>$1,500 (Standard)</option>
+                    <option value="2000">$2,000 (Fast)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-timer">Turn Timer</label>
+                  <select id="setting-timer" class="setting-select">
+                    <option value="30">30 Seconds</option>
+                    <option value="45" selected>45 Seconds</option>
+                    <option value="60">60 Seconds</option>
+                    <option value="90">90 Seconds</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-parking">Free Parking Pool</label>
+                  <select id="setting-parking" class="setting-select">
+                    <option value="true" selected>Enabled (Jackpot)</option>
+                    <option value="false">Disabled (Classic)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-auction">Decline Auction</label>
+                  <select id="setting-auction" class="setting-select">
+                    <option value="true" selected>Enabled (Richup)</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-double-rent">x2 Full-Set Rent</label>
+                  <select id="setting-double-rent" class="setting-select">
+                    <option value="true" selected>Enabled (Double base rent)</option>
+                    <option value="false">Disabled (Standard rent)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-prison-rent">Rent While in Prison</label>
+                  <select id="setting-prison-rent" class="setting-select">
+                    <option value="true" selected>No Rent (Owner in prison)</option>
+                    <option value="false">Collect Rent Normally</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-even-build">Even Build Rule</label>
+                  <select id="setting-even-build" class="setting-select">
+                    <option value="true" selected>Enabled (Even houses/hotels)</option>
+                    <option value="false">Disabled (Free build)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-mortgage">Mortgage Properties</label>
+                  <select id="setting-mortgage" class="setting-select">
+                    <option value="true" selected>Enabled (50% cost, 0 rent)</option>
+                    <option value="false">Disabled (No mortgages)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="setting-privacy">Room Visibility</label>
+                  <select id="setting-privacy" class="setting-select">
+                    <option value="false" selected>🔒 Private (Invite Only)</option>
+                    <option value="true">🌐 Public (Listed)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Lobby Action Buttons -->
+              <div class="lobby-actions">
+                <button class="btn-secondary" id="btn-add-bot">
+                  <span>🤖 Add AI Bot</span>
+                </button>
+                <button class="btn-primary btn-start" id="btn-start-game">
+                  <span>Start Game</span> 🎲
+                </button>
+              </div>
+
+              <!-- Lobby Live Chat Box -->
+              <div class="lobby-chat-box">
+                <div class="lobby-chat-header">
+                  <span>💬 Room Chat</span>
+                </div>
+                <div class="lobby-chat-messages" id="lobby-chat-messages"></div>
+                <form class="lobby-chat-input-bar" id="lobby-chat-form" onsubmit="event.preventDefault(); game.sendChatMessage('lobby');">
+                  <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Chat with players in lobby..." maxlength="200" autocomplete="off">
+                  <button type="submit" class="chat-send-btn" title="Send message">➤</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: Game Board View -->
+    <section class="screen" id="game-screen">
+      <div class="board-viewport">
+        <!-- 11x11 Grid Monopoly Board -->
+        <div class="monopoly-board" id="monopoly-board">
+          <!-- Populated dynamically via JS -->
+
+          <!-- Center Command Deck -->
+          <div class="board-center">
+            <div class="center-watermark">
+              <span class="big-logo">RICHUP</span>
+            </div>
+
+            <div class="center-top-bar">
+              <div class="turn-pill" id="center-turn-pill">
+                <div class="pulse-dot"></div>
+                <span>Connecting...</span>
+              </div>
+              <div class="timer-box" id="center-timer-box">45s</div>
+            </div>
+
+            <div class="center-arena">
+              <!-- 3D Rolling Dice -->
+              <div class="dice-container" id="dice-container">
+                <div class="die" id="die-1" data-val="1">
+                  <div class="pip"></div>
+                </div>
+                <div class="die" id="die-2" data-val="1">
+                  <div class="pip"></div>
+                </div>
+              </div>
+
+              <!-- Dynamic Status Prompt -->
+              <div class="status-prompt" id="center-status-prompt">Waiting for turn...</div>
+
+              <!-- Central Context Actions -->
+              <div class="center-controls">
+                <button class="action-btn btn-roll" id="btn-action-roll">
+                  <span>🎲 Roll Dice</span>
+                </button>
+                <button class="action-btn btn-buy" id="btn-action-buy" style="display:none;">
+                  <span>🏡 Buy Property</span>
+                </button>
+                <button class="action-btn btn-auction" id="btn-action-auction" style="display:none;">
+                  <span>⚖️ Decline & Auction</span>
+                </button>
+                <button class="action-btn btn-end-turn" id="btn-action-end" style="display:none;">
+                  <span>⏭️ End Turn</span>
+                </button>
+                <button class="action-btn btn-secondary" id="btn-action-jail-fine" style="display:none;color:#fbbf24;">
+                  <span>💸 Pay $50 Fine</span>
+                </button>
+                <button class="action-btn btn-secondary" id="btn-action-jail-card" style="display:none;color:#38bdf8;">
+                  <span>🗝️ Use Jail Card</span>
+                </button>
+                <button class="action-btn btn-secondary" id="btn-action-debt" style="display:none;color:#10b981;">
+                  <span>⚠️ Pay Off Debt</span>
+                </button>
+                <button class="action-btn btn-secondary" id="btn-action-bankrupt" style="display:none;color:#ef4444;">
+                  <span>💀 Declare Bankruptcy</span>
+                </button>
+              </div>
+            </div>
+
+            <div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Players & Game Event Activity (NO CHAT SYSTEM) -->
+      <aside class="game-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-tabs">
+            <button class="sidebar-tab-btn active" data-tab="players">Players</button>
+            <button class="sidebar-tab-btn" data-tab="activity">Activity</button>
+            <button class="sidebar-tab-btn" data-tab="auctions">Auctions</button>
+            <button class="sidebar-tab-btn" data-tab="trades">Trades</button>
+            <button class="sidebar-tab-btn" data-tab="chat">💬 Chat <span id="chat-unread-dot" class="chat-unread-dot" style="display:none;"></span></button>
+          </div>
+        </div>
+
+        <!-- Players List View -->
+        <div class="sidebar-content" id="sidebar-players-view">
+          <div id="sidebar-players-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+
+        <!-- Activity Feed View (Real-time Game Event Log Only) -->
+        <div class="activity-feed-container" id="sidebar-activity-view" style="display:none;">
+          <div class="log-stream" id="log-stream"></div>
+        </div>
+
+        <!-- Auctions View -->
+        <div class="sidebar-content" id="sidebar-auctions-view" style="display:none;">
+          <div id="sidebar-auctions-content"></div>
+        </div>
+
+        <!-- Trades View -->
+        <div class="sidebar-content" id="sidebar-trades-view" style="display:none;">
+          <div id="sidebar-trades-content"></div>
+        </div>
+
+        <!-- In-Game Chat View -->
+        <div class="sidebar-content chat-view-container" id="sidebar-chat-view" style="display:none;">
+          <div class="chat-messages-stream" id="chat-messages-stream"></div>
+          <form class="chat-input-bar" id="chat-form" onsubmit="event.preventDefault(); game.sendChatMessage('game');">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="200" autocomplete="off">
+            <button type="submit" class="chat-send-btn" title="Send message">➤</button>
+          </form>
+        </div>
+
+        <!-- Sidebar Footer Actions -->
+        <div class="sidebar-footer" style="padding:10px 14px;border-top:1px solid var(--border-color);background:rgba(0,0,0,0.25);">
+          <button class="btn-secondary" id="btn-voluntary-bankruptcy" style="width:100%;color:#ef4444;border-color:rgba(239,68,68,0.4);font-size:0.85rem;padding:9px;font-weight:700;">
+            💀 Declare Bankruptcy
+          </button>
+        </div>
+      </aside>
+
+      <!-- Quick Reactions Area (Visible to both players & spectators) -->
+      <div class="reactions-dock" id="reactions-dock">
+        <div class="reactions-display-zone" id="reactions-display-zone"></div>
+        <div class="reactions-bar">
+          <button type="button" class="reaction-btn" data-emoji="😂" title="Laugh">😂</button>
+          <button type="button" class="reaction-btn" data-emoji="😡" title="Angry">😡</button>
+          <button type="button" class="reaction-btn" data-emoji="😭" title="Crying">😭</button>
+          <button type="button" class="reaction-btn" data-emoji="😊" title="Happy">😊</button>
+          <button type="button" class="reaction-btn" data-emoji="💀" title="Dead">💀</button>
+          <button type="button" class="reaction-btn" data-emoji="🙏" title="Praying">🙏</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= Interactive Modals ================= -->
+
+  <!-- Property Deed Inspector Modal -->
+  <div class="modal-backdrop" id="modal-deed">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span class="modal-title">Property Inspector</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="deed-card-content"></div>
+    </div>
+  </div>
+
+  <!-- Trade Desk Modal -->
+  <div class="modal-backdrop" id="modal-trade">
+    <div class="modal-window trade-modal-window">
+      <div class="modal-header">
+        <span class="modal-title" id="trade-desk-modal-title">🤝 Trade Desk: Deal with <span id="trade-partner-name" style="color:#38bdf8;">Player</span></span>
+        <button class="modal-close" onclick="game.closeModal('modal-trade')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="trade-columns">
+          <div class="trade-col">
+            <div class="trade-col-title">
+              <span>You Offer</span>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+              <div class="trade-slider-wrap">
+                <div class="trade-slider-header">
+                  <span class="trade-slider-label">Your Cash Offer:</span>
+                  <span class="trade-slider-val" id="trade-my-cash-display">$0</span>
+                </div>
+                <input type="range" id="trade-my-cash" class="trade-range-slider" min="0" max="1500" value="0">
+                <div class="trade-slider-sub">
+                  <span id="trade-my-cash-min-lbl">$0</span>
+                  <span id="trade-my-cash-max-lbl">$1500</span>
+                </div>
+              </div>
+            </div>
+            <label style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Your Properties</label>
+            <div class="trade-property-list" id="trade-my-properties"></div>
+          </div>
+
+          <div class="trade-col">
+            <div class="trade-col-title">
+              <span>You Request</span>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+              <div class="trade-slider-wrap">
+                <div class="trade-slider-header">
+                  <span class="trade-slider-label">Their Cash Offer:</span>
+                  <span class="trade-slider-val" id="trade-their-cash-display">$0</span>
+                </div>
+                <input type="range" id="trade-their-cash" class="trade-range-slider" min="0" max="1500" value="0">
+                <div class="trade-slider-sub">
+                  <span id="trade-their-cash-min-lbl">$0</span>
+                  <span id="trade-their-cash-max-lbl">$1500</span>
+                </div>
+              </div>
+            </div>
+            <label style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Their Properties</label>
+            <div class="trade-property-list" id="trade-their-properties"></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">
+          <button class="btn-secondary btn-modal-close" style="flex:none;padding:10px 18px;" onclick="game.closeModal('modal-trade')">Cancel</button>
+          <button class="btn-primary" id="btn-submit-trade-offer" style="flex:none;padding:10px 24px;" onclick="game.sendTradeOffer()">Send Proposal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incoming Trade Offer Modal -->
+  <div class="modal-backdrop" id="modal-incoming-trade">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span class="modal-title">Incoming Trade Proposal</span>
+        <button class="modal-close" onclick="game.holdIncomingTrade()">&times;</button>
+      </div>
+      <div class="modal-body" id="incoming-trade-content"></div>
+    </div>
+  </div>
+
+  <!-- Trade Detail & Spectate Modal -->
+  <div class="modal-backdrop" id="modal-trade-detail">
+    <div class="modal-window" style="max-width:520px;">
+      <div class="modal-header">
+        <span class="modal-title" id="trade-detail-title">Trade Details</span>
+        <button class="modal-close" onclick="game.closeModal('modal-trade-detail')">&times;</button>
+      </div>
+      <div class="modal-body" id="trade-detail-content" style="padding:16px;"></div>
+    </div>
+  </div>
+
+  <!-- Live Auction Modal -->
+  <div class="modal-backdrop" id="modal-auction">
+    <div class="modal-window">
+      <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="modal-title">Live Public Auction</span>
+        <button class="modal-close" onclick="game.holdAuction()">&times;</button>
+      </div>
+      <div class="modal-body" id="auction-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div class="modal-backdrop" id="modal-gameover">
+    <div class="modal-window">
+      <div class="modal-body" id="gameover-content"></div>
+    </div>
+  </div>
+
+  <!-- Detailed Player Profile Modal -->
+  <div class="modal-backdrop" id="modal-player-detail">
+    <div class="modal-window player-detail-window">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div id="player-detail-avatar" class="player-avatar-small" style="width:38px;height:38px;font-size:1.3rem;">🚗</div>
+          <span class="modal-title" id="player-detail-name">Player Profile</span>
+        </div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="player-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- Rules & Information Modal -->
+  <div class="modal-backdrop" id="modal-rules">
+    <div class="modal-window" style="max-width:560px;">
+      <div class="modal-header">
+        <span class="modal-title">Richup.io Rules & Guide</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height:480px;overflow-y:auto;font-size:0.88rem;line-height:1.6;color:var(--text-muted);">
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎯 Goal:</strong> Bankrupt your opponents by buying properties, collecting rent, and constructing houses and hotels!</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎲 Rolling Doubles:</strong> If you roll doubles, you get another turn! Rolling 3 consecutive doubles sends you straight to Jail.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies & Houses:</strong> Collect all properties in a color group to achieve a Monopoly. You can then build up to 4 houses and 1 hotel per property evenly across the group. Rent multiplies dramatically!</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">⚖️ Auctions:</strong> If an unowned property is declined, it is immediately auctioned off to the highest bidder starting from $10.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🤝 Trading:</strong> You can propose trades anytime with other players for properties and cash.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🅿️ Free Parking:</strong> Taxes and fines collected are deposited into the Jackpot pool. The player who lands on Free Parking wins the entire pot!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voluntary Bankruptcy Modal -->
+  <div class="modal-backdrop" id="modal-confirm-bankruptcy">
+    <div class="modal-window" style="max-width:420px;text-align:center;">
+      <div class="modal-header">
+        <span class="modal-title" style="color:#ef4444;">Declare Bankruptcy</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <p style="margin-bottom:16px;color:var(--text-muted);font-size:0.95rem;line-height:1.5;">
+          Are you sure you want to declare bankruptcy? <br>
+          <span style="color:#ef4444;font-weight:600;">All your properties will immediately become unowned</span> and available on the board, and you will be eliminated from the match.
+        </p>
+        <div style="display:flex;gap:12px;">
+          <button class="btn-secondary btn-modal-close" style="flex:1;">Cancel</button>
+          <button class="btn-primary" id="btn-confirm-bankrupt-action" style="flex:1;background:#ef4444;border-color:#ef4444;">Declare Bankrupt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Reason / Error Popup Modal -->
+  <div class="modal-backdrop" id="modal-action-reason">
+    <div class="modal-window" style="max-width:440px;text-align:center;border:1px solid rgba(239,68,68,0.45);box-shadow:0 20px 50px rgba(239,68,68,0.2);">
+      <div class="modal-header" style="justify-content:center;position:relative;">
+        <span class="modal-title" style="color:#ef4444;font-size:1.15rem;display:flex;align-items:center;gap:8px;">
+          <span>⚠️</span> <span id="action-reason-title-text">Action Not Allowed</span>
+        </span>
+        <button class="modal-close" style="position:absolute;right:12px;top:12px;" onclick="game.closeModal('modal-action-reason')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:22px 18px;">
+        <div style="font-size:2.4rem;margin-bottom:12px;" id="action-reason-icon">🚫</div>
+        <p id="action-reason-message" style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 20px 0;font-weight:500;">
+          Reason message goes here.
+        </p>
+        <button class="btn-primary" style="width:100%;padding:10px;font-weight:700;" onclick="game.closeModal('modal-action-reason')">
+          Understood
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/audio.js"></script>
+  <script src="/js/game.js?v=3"></script>
+</body>
+</html>
