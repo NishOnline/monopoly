@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 import uuid
 from typing import Dict, Set
@@ -287,18 +288,23 @@ async def handle_ws(request):
                         if room.buy_property(current_player_id):
                             await broadcast_room(current_room_id)
 
-                elif action == "DECLINE_PROPERTY":
+                elif action in ["START_AUCTION", "AUCTION_PROPERTY"]:
                     if room.state == "PLAYING":
-                        if room.decline_and_auction(current_player_id):
+                        if room.start_property_auction(current_player_id):
                             await broadcast_room(current_room_id)
 
-                elif action == "AUCTION_BID":
+                elif action in ["PASS_PROPERTY", "DECLINE_PROPERTY"]:
+                    if room.state == "PLAYING":
+                        if room.pass_property(current_player_id):
+                            await broadcast_room(current_room_id)
+
+                elif action in ["AUCTION_BID", "PLACE_BID"]:
                     if room.state == "PLAYING":
                         amount = int(data.get("amount", 0))
                         if room.place_bid(current_player_id, amount):
                             await broadcast_room(current_room_id)
 
-                elif action == "AUCTION_PASS":
+                elif action in ["AUCTION_PASS", "PASS_BID"]:
                     if room.state == "PLAYING":
                         if room.pass_bid(current_player_id):
                             await broadcast_room(current_room_id)
@@ -557,7 +563,9 @@ async def game_tick_loop():
                             room.roll_dice(curr["id"])
                             updated = True
                         elif room.turn_phase == "LANDED_ACTION":
-                            room.decline_and_auction(curr["id"])
+                            # Turn timer ran out while deciding on landed tile -> pass on property and auto end turn
+                            room.pass_property(curr["id"])
+                            room.end_turn(curr["id"])
                             updated = True
                         elif room.turn_phase == "WAITING_END_TURN":
                             if curr["cash"] < 0:
@@ -566,7 +574,9 @@ async def game_tick_loop():
                                 room.declare_bankruptcy(curr["id"])
                                 updated = True
                             else:
-                                pass
+                                room.log(f"⏰ Turn timer expired! {curr['name']}'s turn automatically ended.", "turn", "⏱️", curr["id"])
+                                room.end_turn(curr["id"])
+                                updated = True
                         elif room.turn_phase == "DEBT":
                             room.declare_bankruptcy(curr["id"])
                             updated = True
@@ -620,8 +630,17 @@ async def on_cleanup(app):
     await asyncio.gather(app["tick_task"], return_exceptions=True)
 
 
+@web.middleware
+async def no_cache_middleware(request, handler):
+    response = await handler(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def init_app():
-    app = web.Application()
+    app = web.Application(middlewares=[no_cache_middleware])
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
 
@@ -632,9 +651,23 @@ def init_app():
     # Static assets
     app.router.add_static("/css/", path=os.path.join(STATIC_DIR, "css"), name="css")
     app.router.add_static("/js/", path=os.path.join(STATIC_DIR, "js"), name="js")
+    app.router.add_static("/img/", path=os.path.join(STATIC_DIR, "img"), name="img")
 
     async def index(request):
-        return web.FileResponse(os.path.join(STATIC_DIR, "index.html"))
+        with open(os.path.join(STATIC_DIR, "index.html"), "r", encoding="utf-8") as f:
+            html = f.read()
+        ts = str(int(time.time()))
+        html = re.sub(r'style\.css(?:\?v=[^"\'\s>]*)?', f'style.css?v={ts}', html)
+        html = re.sub(r'game\.js(?:\?v=[^"\'\s>]*)?', f'game.js?v={ts}', html)
+        return web.Response(
+            text=html,
+            content_type="text/html",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
 
     async def favicon(request):
         return web.Response(status=204)

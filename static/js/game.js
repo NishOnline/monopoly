@@ -221,24 +221,152 @@ class RichupGame {
     }
 
     // Host Settings Changes (Toggleable room rules)
-    const settingIds = [
-      'setting-cash', 'setting-timer', 'setting-parking', 'setting-auction',
-      'setting-double-rent', 'setting-prison-rent', 'setting-even-build', 'setting-mortgage',
-      'setting-privacy'
-    ];
-    settingIds.forEach(id => {
+    // 1. Starting Cash Steppers & Range Slider (1000, 1500, 2000, 2500)
+    const cashSlider = document.getElementById('setting-cash');
+    const cashBadge = document.getElementById('badge-cash-val');
+    const cashMinusBtn = document.getElementById('btn-cash-minus');
+    const cashPlusBtn = document.getElementById('btn-cash-plus');
+
+    const updateCashUi = (val) => {
+      val = Math.max(1000, Math.min(2500, val));
+      if (cashSlider) cashSlider.value = val;
+      if (cashBadge) cashBadge.innerText = `$${val.toLocaleString()}`;
+    };
+
+    if (cashSlider) {
+      cashSlider.addEventListener('input', (e) => {
+        updateCashUi(parseInt(e.target.value, 10));
+      });
+      cashSlider.addEventListener('change', () => this.applySettings());
+    }
+
+    if (cashMinusBtn) {
+      cashMinusBtn.addEventListener('click', () => {
+        if (!this.isHost || !cashSlider) return;
+        const cur = parseInt(cashSlider.value, 10) || 1500;
+        updateCashUi(Math.max(1000, cur - 500));
+        this.applySettings();
+      });
+    }
+
+    if (cashPlusBtn) {
+      cashPlusBtn.addEventListener('click', () => {
+        if (!this.isHost || !cashSlider) return;
+        const cur = parseInt(cashSlider.value, 10) || 1500;
+        updateCashUi(Math.min(2500, cur + 500));
+        this.applySettings();
+      });
+    }
+
+    // 2. Turn Timer Slider & Ticks (Min 45s, Max 150s)
+    const timerSlider = document.getElementById('setting-timer-slider');
+    const timerHidden = document.getElementById('setting-timer');
+    const timerTicks = document.querySelectorAll('.timer-ticks span');
+    const timerMap = [45, 60, 90, 120, 150];
+
+    const updateTimerUi = (idx) => {
+      idx = Math.max(0, Math.min(4, idx));
+      if (timerSlider) timerSlider.value = idx;
+      if (timerHidden) timerHidden.value = timerMap[idx];
+      timerTicks.forEach((sp, i) => sp.classList.toggle('active', i === idx));
+    };
+
+    if (timerSlider) {
+      timerSlider.addEventListener('input', (e) => {
+        updateTimerUi(parseInt(e.target.value, 10));
+      });
+      timerSlider.addEventListener('change', () => this.applySettings());
+    }
+
+    timerTicks.forEach((sp, i) => {
+      sp.addEventListener('click', () => {
+        if (!this.isHost) return;
+        updateTimerUi(i);
+        this.applySettings();
+      });
+    });
+
+    // 3. Richup Pill Toggles (Auctions green when on, everything else gold when on)
+    document.querySelectorAll('.richup-pill-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!this.isHost) return;
+        const settingKey = btn.getAttribute('data-setting');
+        const hiddenInput = document.getElementById(settingKey);
+        const isCurrentlyOn = btn.classList.contains('on');
+        const newState = !isCurrentlyOn;
+        const color = btn.getAttribute('data-color') || (btn.id === 'toggle-auction' ? 'green' : 'gold');
+
+        btn.classList.toggle('on', newState);
+        btn.classList.toggle('off', !newState);
+        btn.classList.remove('green', 'gold', 'red');
+        if (newState) {
+          btn.classList.add(color);
+        } else {
+          btn.classList.add('red');
+        }
+        const textSpan = btn.querySelector('.toggle-text');
+        if (textSpan) textSpan.innerText = newState ? 'ON' : 'OFF';
+        if (hiddenInput) hiddenInput.value = String(newState);
+
+        this.applySettings();
+      });
+    });
+
+    // 4. Privacy Segmented Pill
+    const segButtons = document.querySelectorAll('#segmented-privacy .seg-opt');
+    segButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!this.isHost) return;
+        segButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const hiddenPrivacy = document.getElementById('setting-privacy');
+        if (hiddenPrivacy) hiddenPrivacy.value = btn.getAttribute('data-val');
+        this.applySettings();
+      });
+    });
+
+    // 5. Back Buttons in Setup Menu & Logo Return to Main Menu
+    const handleReturnToMain = () => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId) {
+        this.sendAction({ action: 'LEAVE_ROOM' });
+      }
+      this.resetToMainMenu();
+    };
+
+    ['btn-back-setup', 'btn-back-top', 'richup-logo-home'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener('change', () => this.applySettings());
+        el.addEventListener('click', handleReturnToMain);
       }
     });
+
+    // 6. Floating Lobby Chat Drawer Toggle
+    const toggleLobbyChatBtn = document.getElementById('btn-toggle-lobby-chat');
+    const closeLobbyChatBtn = document.getElementById('btn-close-lobby-chat');
+    const lobbyChatDrawer = document.getElementById('lobby-chat-drawer');
+    if (toggleLobbyChatBtn && lobbyChatDrawer) {
+      toggleLobbyChatBtn.addEventListener('click', () => {
+        const isOpen = lobbyChatDrawer.style.display !== 'none';
+        lobbyChatDrawer.style.display = isOpen ? 'none' : 'flex';
+        if (!isOpen) {
+          const pill = document.getElementById('lobby-chat-pill-count');
+          if (pill) pill.style.display = 'none';
+          const inp = document.getElementById('lobby-chat-input');
+          if (inp) inp.focus();
+        }
+      });
+    }
+    if (closeLobbyChatBtn && lobbyChatDrawer) {
+      closeLobbyChatBtn.addEventListener('click', () => {
+        lobbyChatDrawer.style.display = 'none';
+      });
+    }
 
     // In-Game Central Action Buttons
     const rollBtn = document.getElementById('btn-action-roll');
     if (rollBtn) {
       rollBtn.addEventListener('click', () => {
         if (this.isRolling || this.isSpectator) return;
-        this.triggerDiceAnimation();
         this.sendAction({ action: 'ROLL_DICE' });
       });
     }
@@ -250,10 +378,17 @@ class RichupGame {
       });
     }
 
-    const declineBtn = document.getElementById('btn-action-auction');
-    if (declineBtn) {
-      declineBtn.addEventListener('click', () => {
-        this.sendAction({ action: 'DECLINE_PROPERTY' });
+    const auctionActionBtn = document.getElementById('btn-action-auction');
+    if (auctionActionBtn) {
+      auctionActionBtn.addEventListener('click', () => {
+        this.sendAction({ action: 'START_AUCTION' });
+      });
+    }
+
+    const passPropBtn = document.getElementById('btn-action-pass-property');
+    if (passPropBtn) {
+      passPropBtn.addEventListener('click', () => {
+        this.sendAction({ action: 'PASS_PROPERTY' });
       });
     }
 
@@ -568,25 +703,28 @@ class RichupGame {
       const state = this.gameState;
       const timerBox = document.getElementById('center-timer-box');
 
-      // 1. Turn timer: active countdown for WAITING_ROLL and LANDED_ACTION; PAUSED after playing turn till End Turn is pressed UNLESS player is in debt (negative cash)
+      // 1. Turn timer: continuous countdown for the active turn until the player clicks End Turn (or expires)
       const currPlayer = state.players ? state.players.find(p => p.id === state.current_player_id) : null;
       const isCurrInDebt = currPlayer && currPlayer.cash < 0;
 
-      if (state.turn_phase === 'WAITING_ROLL' || state.turn_phase === 'LANDED_ACTION' || (state.turn_phase === 'WAITING_END_TURN' && isCurrInDebt)) {
-        if (typeof this.currentTurnTimeLeft === 'number' && this.currentTurnTimeLeft > 0) {
+      if (state.turn_phase === 'WAITING_ROLL' || state.turn_phase === 'LANDED_ACTION' || state.turn_phase === 'WAITING_END_TURN' || state.turn_phase === 'DEBT') {
+        let secs = 0;
+        if (state.turn_deadline) {
+          const now = Date.now() / 1000;
+          secs = Math.max(0, Math.ceil(state.turn_deadline - now));
+        } else if (typeof this.currentTurnTimeLeft === 'number') {
           this.currentTurnTimeLeft = Math.max(0, this.currentTurnTimeLeft - 0.25);
-          const secs = Math.ceil(this.currentTurnTimeLeft);
-          if (timerBox) {
-            timerBox.innerText = `${secs}s`;
-            timerBox.classList.toggle('urgent', secs <= 10 || isCurrInDebt);
-            timerBox.title = isCurrInDebt ? 'Liquidate properties before debt timer expires!' : 'Time remaining for turn action';
-          }
+          secs = Math.ceil(this.currentTurnTimeLeft);
         }
-      } else if (state.turn_phase === 'WAITING_END_TURN') {
         if (timerBox) {
-          timerBox.innerText = '⏸️';
+          timerBox.innerText = `${secs}s`;
+          timerBox.classList.toggle('urgent', secs <= 10 || isCurrInDebt);
+          timerBox.title = isCurrInDebt ? 'Liquidate properties before debt timer expires!' : 'Turn time remaining (auto-ends if expired)';
+        }
+      } else {
+        if (timerBox) {
+          timerBox.innerText = '';
           timerBox.classList.remove('urgent');
-          timerBox.title = 'Turn timer paused - manage properties or press End Turn';
         }
       }
 
@@ -594,20 +732,31 @@ class RichupGame {
       if (state.turn_phase === 'AUCTION' && state.auction) {
         const auc = state.auction;
         const aucTimer = document.getElementById('auction-timer-pill');
-        if (aucTimer) {
-          if (auc.deadline) {
-            const now = Date.now() / 1000;
-            const diff = Math.max(0, (auc.deadline - now));
-            const displaySecs = Math.ceil(diff);
-            if (displaySecs > 0) {
-              aucTimer.innerHTML = `⏱️ Ending in <strong>${displaySecs}s</strong>`;
-              aucTimer.classList.add('urgent');
-            } else {
-              aucTimer.innerHTML = `🔨 Concluding...`;
-            }
-          } else {
-            aucTimer.innerHTML = `⚖️ Place your bet • 3s timer starts on first bet`;
+        const sbAucTimer = document.getElementById('sidebar-auction-timer-pill');
+        if (auc.deadline) {
+          const now = Date.now() / 1000;
+          const diff = Math.max(0, (auc.deadline - now));
+          const displaySecs = Math.ceil(diff);
+          const txt = displaySecs > 0 ? `⏱️ Ending in <strong>${displaySecs}s</strong>` : `🔨 Concluding...`;
+          if (aucTimer) {
+            aucTimer.innerHTML = txt;
+            aucTimer.classList.add('urgent');
+          }
+          if (sbAucTimer) {
+            sbAucTimer.innerHTML = txt;
+            sbAucTimer.style.color = '#ef4444';
+            sbAucTimer.style.fontWeight = 'bold';
+          }
+        } else {
+          const defaultTxt = `⚖️ Place your bet • 3s timer starts on first bet`;
+          if (aucTimer) {
+            aucTimer.innerHTML = defaultTxt;
             aucTimer.classList.remove('urgent');
+          }
+          if (sbAucTimer) {
+            sbAucTimer.innerHTML = defaultTxt;
+            sbAucTimer.style.color = 'var(--text-muted)';
+            sbAucTimer.style.fontWeight = 'normal';
           }
         }
       }
@@ -685,8 +834,15 @@ class RichupGame {
   }
 
   showLobbyRoomView() {
-    document.getElementById('lobby-welcome-view').style.display = 'none';
-    document.getElementById('room-lobby-view').style.display = 'block';
+    const welcomeBox = document.getElementById('lobby-welcome-box');
+    if (welcomeBox) welcomeBox.style.display = 'none';
+    const welcomeView = document.getElementById('lobby-welcome-view');
+    if (welcomeView) welcomeView.style.display = 'none';
+    const roomView = document.getElementById('room-lobby-view');
+    if (roomView) roomView.style.display = 'block';
+
+    const topNav = document.querySelector('.top-nav');
+    if (topNav) topNav.style.display = 'none';
   }
 
   resetToMainMenu() {
@@ -700,8 +856,14 @@ class RichupGame {
     if (specPill) specPill.style.display = 'none';
     document.getElementById('screen-welcome').classList.add('active');
     document.getElementById('game-screen').classList.remove('active');
-    document.getElementById('lobby-welcome-view').style.display = 'block';
-    document.getElementById('room-lobby-view').style.display = 'none';
+    const welcomeBox = document.getElementById('lobby-welcome-box');
+    if (welcomeBox) welcomeBox.style.display = 'flex';
+    const welcomeView = document.getElementById('lobby-welcome-view');
+    if (welcomeView) welcomeView.style.display = 'block';
+    const roomView = document.getElementById('room-lobby-view');
+    if (roomView) roomView.style.display = 'none';
+    const topNav = document.querySelector('.top-nav');
+    if (topNav) topNav.style.display = 'flex';
     this.fetchOpenRooms();
   }
 
@@ -713,16 +875,43 @@ class RichupGame {
     });
   }
 
+  syncPillToggle(btnId, inputId, isOn, colorClass) {
+    const btn = document.getElementById(btnId);
+    const hidden = document.getElementById(inputId);
+    if (!btn) return;
+    btn.classList.toggle('on', isOn);
+    btn.classList.toggle('off', !isOn);
+    btn.classList.remove('green', 'gold', 'red');
+    if (isOn) {
+      btn.classList.add(colorClass || 'gold');
+    } else {
+      btn.classList.add('red');
+    }
+    const textSpan = btn.querySelector('.toggle-text');
+    if (textSpan) textSpan.innerText = isOn ? 'ON' : 'OFF';
+    if (hidden) hidden.value = String(isOn);
+  }
+
+  syncPrivacySegmented(isPublic) {
+    const hidden = document.getElementById('setting-privacy');
+    if (hidden) hidden.value = String(isPublic);
+    const btns = document.querySelectorAll('#segmented-privacy .seg-opt');
+    btns.forEach(b => {
+      const val = b.getAttribute('data-val') === 'true';
+      b.classList.toggle('active', val === isPublic);
+    });
+  }
+
   applySettings() {
     if (!this.isHost) return;
     const startingCash = parseInt(document.getElementById('setting-cash').value, 10);
     const turnTimer = parseInt(document.getElementById('setting-timer').value, 10);
-    const parkingJackpot = document.getElementById('setting-parking').value === 'true';
-    const auctionOnDecline = document.getElementById('setting-auction').value === 'true';
-    const doubleRent = document.getElementById('setting-double-rent').value === 'true';
-    const prisonRent = document.getElementById('setting-prison-rent').value === 'true';
-    const evenBuild = document.getElementById('setting-even-build').value === 'true';
-    const mortgage = document.getElementById('setting-mortgage').value === 'true';
+    const parkingJackpot = document.getElementById('setting-parking') ? document.getElementById('setting-parking').value === 'true' : true;
+    const auctionOnDecline = document.getElementById('setting-auction') ? document.getElementById('setting-auction').value === 'true' : true;
+    const doubleRent = document.getElementById('setting-double-rent') ? document.getElementById('setting-double-rent').value === 'true' : true;
+    const prisonRent = document.getElementById('setting-prison-rent') ? document.getElementById('setting-prison-rent').value === 'true' : true;
+    const evenBuild = document.getElementById('setting-even-build') ? document.getElementById('setting-even-build').value === 'true' : false;
+    const mortgage = document.getElementById('setting-mortgage') ? document.getElementById('setting-mortgage').value === 'true' : true;
     const privacyEl = document.getElementById('setting-privacy');
     const isPublic = privacyEl ? privacyEl.value === 'true' : false;
 
@@ -762,30 +951,49 @@ class RichupGame {
       this.closeModal('modal-confirm-bankruptcy');
       document.getElementById('screen-welcome').classList.add('active');
       document.getElementById('game-screen').classList.remove('active');
-      document.getElementById('lobby-welcome-view').style.display = 'none';
-      document.getElementById('room-lobby-view').style.display = 'block';
+      this.showLobbyRoomView();
     }
 
     // Sync settings across clients in lobby
     if (data.settings) {
-      if (document.getElementById('setting-cash')) document.getElementById('setting-cash').value = data.settings.starting_cash || 1500;
-      if (document.getElementById('setting-timer')) document.getElementById('setting-timer').value = data.settings.turn_timer_seconds || 45;
-      if (document.getElementById('setting-parking')) document.getElementById('setting-parking').value = String(data.settings.free_parking_jackpot);
-      if (document.getElementById('setting-auction')) document.getElementById('setting-auction').value = String(data.settings.auction_on_decline);
-      if (document.getElementById('setting-double-rent')) document.getElementById('setting-double-rent').value = String(data.settings.double_rent_full_set !== false);
-      if (document.getElementById('setting-prison-rent')) document.getElementById('setting-prison-rent').value = String(data.settings.no_rent_in_prison !== false);
-      if (document.getElementById('setting-even-build')) document.getElementById('setting-even-build').value = String(data.settings.even_build !== false);
-      if (document.getElementById('setting-mortgage')) document.getElementById('setting-mortgage').value = String(data.settings.mortgage_enabled !== false);
-      if (document.getElementById('setting-privacy')) document.getElementById('setting-privacy').value = String(data.settings.is_public === true);
+      if (document.getElementById('setting-cash')) {
+        const cashVal = Math.max(1000, Math.min(2500, data.settings.starting_cash || 1500));
+        document.getElementById('setting-cash').value = cashVal;
+        const badge = document.getElementById('badge-cash-val');
+        if (badge) badge.innerText = `$${cashVal.toLocaleString()}`;
+      }
+      if (document.getElementById('setting-timer-slider')) {
+        const sec = data.settings.turn_timer_seconds;
+        const timerMap = [45, 60, 90, 120, 150];
+        const idx = timerMap.indexOf(sec);
+        const timerIdx = idx !== -1 ? idx : 0;
+        document.getElementById('setting-timer-slider').value = timerIdx;
+        const hiddenTimer = document.getElementById('setting-timer');
+        if (hiddenTimer) hiddenTimer.value = sec;
+        const timerTicks = document.querySelectorAll('.timer-ticks span');
+        timerTicks.forEach((sp, i) => sp.classList.toggle('active', i === timerIdx));
+      }
+      this.syncPillToggle('toggle-auction', 'setting-auction', Boolean(data.settings.auction_on_decline), 'green');
+      this.syncPillToggle('toggle-double-rent', 'setting-double-rent', data.settings.double_rent_full_set !== false, 'gold');
+      this.syncPillToggle('toggle-prison-rent', 'setting-prison-rent', data.settings.no_rent_in_prison !== false, 'gold');
+      this.syncPillToggle('toggle-mortgage', 'setting-mortgage', data.settings.mortgage_enabled !== false, 'gold');
+      this.syncPillToggle('toggle-even-build', 'setting-even-build', data.settings.even_build === true, 'gold');
+      this.syncPrivacySegmented(Boolean(data.settings.is_public));
 
       // Disable inputs for non-host players, enable for host
       const isHost = this.isHost;
-      ['setting-cash', 'setting-timer', 'setting-parking', 'setting-auction',
-       'setting-double-rent', 'setting-prison-rent', 'setting-even-build', 'setting-mortgage',
-       'setting-privacy'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.disabled = !isHost;
+      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt').forEach(el => {
+        el.style.pointerEvents = isHost ? 'auto' : 'none';
+        el.style.opacity = isHost ? '1' : '0.65';
       });
+      const addBotBtn = document.getElementById('btn-add-bot');
+      if (addBotBtn) {
+        addBotBtn.style.display = isHost ? 'flex' : 'none';
+      }
+      const startBtn = document.getElementById('btn-start-game');
+      if (startBtn) {
+        startBtn.style.display = isHost ? 'block' : 'none';
+      }
     }
 
     // Detect switch from LOBBY to PLAYING (or if spectator already on game screen)
@@ -793,6 +1001,8 @@ class RichupGame {
       this.closeModal('modal-gameover');
       document.getElementById('screen-welcome').classList.remove('active');
       document.getElementById('game-screen').classList.add('active');
+      const topNav = document.querySelector('.top-nav');
+      if (topNav) topNav.style.display = 'flex';
     } else if (data.state === 'GAME_OVER') {
       this.showGameOverModal();
     } else if (data.state === 'LOBBY') {
@@ -819,17 +1029,30 @@ class RichupGame {
       if (specPill) specPill.style.display = 'none';
     }
 
-    // Play sounds and animations on state changes
+    // Play sounds and animations on state changes (jackpot, monopolies, cash delta)
     this.handleSoundAndFX(prevState, data);
 
     // Render Board Tiles (owners, houses, mortgages)
     this.renderTileStates();
 
-    // Render Player Tokens
-    this.renderPlayerTokens();
+    // Check if new dice roll occurred in this state update
+    const diceChanged = data.last_dice && (!prevState || !prevState.last_dice || prevState.last_dice[0] !== data.last_dice[0] || prevState.last_dice[1] !== data.last_dice[1]);
+    const rollPhaseTransition = prevState && prevState.turn_phase === 'WAITING_ROLL' && data.turn_phase !== 'WAITING_ROLL';
+    const isNewDiceRoll = (diceChanged || rollPhaseTransition) && data.last_dice;
 
-    // Render Center Deck
-    this.renderCenterDeck();
+    if (isNewDiceRoll) {
+      // First dice roll animation plays to completion, then player tokens move!
+      const d1 = data.last_dice[0];
+      const d2 = data.last_dice[1];
+      this.triggerDiceAnimation(d1, d2, () => {
+        this.renderPlayerTokens();
+        this.renderCenterDeck();
+      });
+    } else {
+      // Normal state update: render tokens and center deck immediately
+      this.renderPlayerTokens();
+      this.renderCenterDeck();
+    }
 
     // Render Sidebar (Players and Activity Feed)
     this.renderSidebar();
@@ -845,15 +1068,6 @@ class RichupGame {
 
   handleSoundAndFX(prev, curr) {
     if (!prev) return;
-
-    // 1. Dice roll 3D animation and sound (for any player or bot)
-    const diceChanged = curr.last_dice && (!prev.last_dice || prev.last_dice[0] !== curr.last_dice[0] || prev.last_dice[1] !== curr.last_dice[1]);
-    const rollPhaseTransition = prev.turn_phase === 'WAITING_ROLL' && curr.turn_phase !== 'WAITING_ROLL';
-    if ((diceChanged || rollPhaseTransition) && !this.isRolling) {
-      const d1 = curr.last_dice ? curr.last_dice[0] : 1;
-      const d2 = curr.last_dice ? curr.last_dice[1] : 1;
-      this.triggerDiceAnimation(d1, d2);
-    }
 
     // 2. Check for newly completed monopoly sets (2-second highlight animation)
     if (curr.players && this.boardData && this.boardData.color_groups) {
@@ -874,13 +1088,19 @@ class RichupGame {
       window.soundEngine.moneyGain();
     }
 
-    // 4. Flying cash delta (+/- flying text for 2 sec)
+    // 4. Flying cash delta (+/- flying text for 2 sec, deduplicated)
     if (curr.players) {
       curr.players.forEach(p => {
         const prevCash = this.previousCash[p.id];
         if (prevCash !== undefined && prevCash !== p.cash) {
           const diff = p.cash - prevCash;
-          this.triggerCashDeltaAnimation(p, diff);
+          const now = Date.now();
+          if (!this.lastCashDeltaEvent) this.lastCashDeltaEvent = {};
+          const last = this.lastCashDeltaEvent[p.id];
+          if (!last || last.diff !== diff || (now - last.time) > 1500) {
+            this.lastCashDeltaEvent[p.id] = { diff: diff, time: now };
+            this.triggerCashDeltaAnimation(p, diff);
+          }
         }
         this.previousCash[p.id] = p.cash;
       });
@@ -1116,6 +1336,15 @@ class RichupGame {
         discBadge.remove();
       }
 
+      // If dice are currently rolling, hold token at previous position until dice settle
+      if (this.isRolling && prevPos !== undefined) {
+        const slot = document.getElementById(`tokens-tile-${prevPos}`);
+        if (slot && token.parentElement !== slot) {
+          slot.appendChild(token);
+        }
+        return;
+      }
+
       // Initial placement (no prior recorded position) or position unchanged
       if (prevPos === undefined || prevPos === targetPos) {
         const slot = document.getElementById(`tokens-tile-${targetPos}`);
@@ -1237,6 +1466,7 @@ class RichupGame {
     const rollBtn = document.getElementById('btn-action-roll');
     const buyBtn = document.getElementById('btn-action-buy');
     const auctionBtn = document.getElementById('btn-action-auction');
+    const passPropBtn = document.getElementById('btn-action-pass-property');
     const endTurnBtn = document.getElementById('btn-action-end');
     const jailFineBtn = document.getElementById('btn-action-jail-fine');
     const jailCardBtn = document.getElementById('btn-action-jail-card');
@@ -1244,7 +1474,7 @@ class RichupGame {
     const bankruptBtn = document.getElementById('btn-action-bankrupt');
 
     // Hide all action controls initially
-    [rollBtn, buyBtn, auctionBtn, endTurnBtn, jailFineBtn, jailCardBtn, debtBtn, bankruptBtn].forEach(b => {
+    [rollBtn, buyBtn, auctionBtn, passPropBtn, endTurnBtn, jailFineBtn, jailCardBtn, debtBtn, bankruptBtn].forEach(b => {
       if (b) b.style.display = 'none';
     });
 
@@ -1255,6 +1485,12 @@ class RichupGame {
 
     if (isBankrupt) {
       promptEl.innerText = `👁️ You are eliminated (Bankrupt) - Spectating live game. Current turn: ${currPlayer.name}`;
+      return;
+    }
+
+    // While dice are actively tumbling, display rolling status and hold action buttons
+    if (this.isRolling) {
+      if (promptEl) promptEl.innerText = `🎲 Rolling dice...`;
       return;
     }
 
@@ -1272,13 +1508,39 @@ class RichupGame {
       const tile = this.boardData.tiles[currPlayer.position];
       promptEl.innerText = `${currPlayer.name} landed on ${tile.name}!`;
 
+      const auctionEnabled = Boolean(state.settings && state.settings.auction_on_decline);
+
       if (isMyTurn) {
-        if (buyBtn && currPlayer.cash >= tile.price) {
+        const canAfford = currPlayer.cash >= tile.price;
+        if (buyBtn && canAfford) {
           buyBtn.innerHTML = `🏡 Buy ${tile.name} ($${tile.price})`;
           buyBtn.style.display = 'flex';
         }
         if (auctionBtn) {
-          auctionBtn.style.display = 'flex';
+          if (auctionEnabled) {
+            auctionBtn.innerHTML = `⚖️ Start Auction`;
+            auctionBtn.style.display = 'flex';
+          } else {
+            auctionBtn.style.display = 'none';
+          }
+        }
+        if (passPropBtn) {
+          passPropBtn.innerHTML = canAfford ? `⏭️ Pass / Don't Buy` : `⏭️ Pass`;
+          passPropBtn.style.display = 'flex';
+        }
+        // If auction toggle is OFF and player is unable to buy:
+        // "even when a player lands on a property he is unable to buy, he cannot auction and nothing happens and option to end the turn comes"
+        if (!canAfford && !auctionEnabled) {
+          if (auctionBtn) auctionBtn.style.display = 'none';
+          if (passPropBtn) passPropBtn.style.display = 'none';
+          if (endTurnBtn) {
+            endTurnBtn.style.display = 'flex';
+            endTurnBtn.disabled = false;
+            endTurnBtn.innerHTML = `<span>⏭️ End Turn</span>`;
+            endTurnBtn.style.opacity = '1';
+            endTurnBtn.style.cursor = 'pointer';
+          }
+          promptEl.innerText = `You cannot afford ${tile.name} ($${tile.price}). Pass turn.`;
         }
       }
     } else if (state.turn_phase === 'WAITING_END_TURN') {
@@ -1327,8 +1589,10 @@ class RichupGame {
     die2.innerHTML = Array(d2).fill('<div class="pip"></div>').join('');
   }
 
-  triggerDiceAnimation(targetD1, targetD2) {
-    if (this.isRolling) return;
+  triggerDiceAnimation(targetD1, targetD2, onComplete = null) {
+    if (this.diceTimeout1) clearTimeout(this.diceTimeout1);
+    if (this.diceTimeout2) clearTimeout(this.diceTimeout2);
+
     this.isRolling = true;
     const die1 = document.getElementById('die-1');
     const die2 = document.getElementById('die-2');
@@ -1345,8 +1609,8 @@ class RichupGame {
 
     window.soundEngine.diceRoll();
 
-    setTimeout(() => {
-      this.isRolling = false;
+    // 1. Tumble visual animation (600ms)
+    this.diceTimeout1 = setTimeout(() => {
       if (die1) die1.classList.remove('rolling');
       if (die2) die2.classList.remove('rolling');
 
@@ -1354,7 +1618,15 @@ class RichupGame {
       const d2 = targetD2 || (this.gameState && this.gameState.last_dice ? this.gameState.last_dice[1] : 1);
       this.setDiceFaces(d1, d2);
       window.soundEngine.diceResult();
-    }, 420);
+
+      // 2. Brief pause (220ms) so players see the rolled dice result before tokens move
+      this.diceTimeout2 = setTimeout(() => {
+        this.isRolling = false;
+        if (typeof onComplete === 'function') {
+          onComplete();
+        }
+      }, 220);
+    }, 600);
   }
 
   // ================= Completed Monopoly Set Animation =================
@@ -1481,7 +1753,9 @@ class RichupGame {
                 </div>
               </div>
               <div class="player-financials">
-                <div class="player-cash ${p.cash < 0 ? 'negative-debt' : ''}" id="player-cash-${p.id}">$${p.cash}</div>
+                <div class="player-cash ${p.cash < 0 ? 'negative-debt' : ''}" id="player-cash-${p.id}">
+                  $${p.cash}
+                </div>
               </div>
             </div>
 
@@ -1511,6 +1785,17 @@ class RichupGame {
           </div>
         `;
       }).join('');
+
+      // Re-attach any in-flight floating delta without restarting its CSS animation
+      if (this.activeCashDeltaNodes) {
+        Object.keys(this.activeCashDeltaNodes).forEach(pId => {
+          const node = this.activeCashDeltaNodes[pId];
+          const cashEl = document.getElementById(`player-cash-${pId}`);
+          if (cashEl && node && !node.isConnected) {
+            cashEl.appendChild(node);
+          }
+        });
+      }
     }
 
     // Activity log feed (Real-time game event log only - no chat per instructions)
@@ -1700,15 +1985,12 @@ class RichupGame {
     if (!grid) return;
 
     grid.innerHTML = this.gameState.players.map(p => `
-      <div class="lobby-player-card ${p.id === this.gameState.host_id ? 'host-border' : ''}">
+      <div class="setup-player-pill" style="border-color:${p.color};" title="${p.name} (${p.is_bot ? 'Bot' : (p.id === this.gameState.host_id ? 'Host' : 'Player')})">
+        <span class="avatar">${p.avatar}</span>
+        <span>${p.name}</span>
         ${this.isHost && p.id !== this.playerId ? `
-          <button class="lobby-kick-btn" onclick="game.kickPlayer('${p.id}')" title="Kick">✕</button>
+          <button type="button" class="setup-player-kick" onclick="event.stopPropagation(); game.kickPlayer('${p.id}')" title="Kick">✕</button>
         ` : ''}
-        <div class="lobby-player-avatar" style="border-color:${p.color}">${p.avatar}</div>
-        <div class="lobby-player-name">${p.name}</div>
-        <span class="lobby-player-tag ${p.id === this.gameState.host_id ? 'host' : (p.is_bot ? 'bot' : '')}">
-          ${p.id === this.gameState.host_id ? '👑 HOST' : (p.is_bot ? '🤖 BOT' : 'PLAYER')}
-        </span>
       </div>
     `).join('');
 
@@ -2707,21 +2989,31 @@ class RichupGame {
               <div style="font-size:0.88rem;font-weight:700;color:#fff;">${highestBidder}</div>
             </div>
           </div>
+          <div class="auction-timer-display" id="sidebar-auction-timer-pill" style="font-size:0.8rem;padding:4px 10px;margin-top:6px;background:rgba(255,255,255,0.06);border-radius:6px;text-align:center;">
+            ${auction.deadline ? `⏱️ Ending in <strong>${Math.max(0, Math.ceil(auction.deadline - (Date.now() / 1000)))}s</strong>` : '⚖️ Place your bet (3s timer starts on first bet)'}
+          </div>
           ${canBid ? `
-            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-top:6px;">Quick Bid:</div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-top:8px;">Quick Bid:</div>
             <div class="auction-quick-bids">
               <button class="btn-primary" onclick="game.placeAuctionBid(${(auction.highest_bid || 0) + 10})">+$10</button>
               <button class="btn-primary" onclick="game.placeAuctionBid(${(auction.highest_bid || 0) + 50})">+$50</button>
               <button class="btn-primary" onclick="game.placeAuctionBid(${(auction.highest_bid || 0) + 100})">+$100</button>
             </div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <input type="number" id="sidebar-auction-bid-input" placeholder="Custom $" min="${(auction.highest_bid || 0) + 1}" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 8px;font-size:0.85rem;">
+              <button class="btn-primary" style="padding:6px 14px;" onclick="game.submitSidebarBid()">Bid</button>
+            </div>
             <div style="margin-top:8px;">
-              <button class="btn-secondary" style="width:100%;color:#ef4444;" onclick="game.passAuctionBid()">✋ Pass</button>
+              <button class="btn-secondary" style="width:100%;color:#ef4444;" onclick="game.passAuctionBid()">✋ Pass (Withdraw)</button>
             </div>
           ` : `
-            <div class="spectator-deal-pill">
+            <div class="spectator-deal-pill" style="margin-top:8px;">
               ${hasPassed ? 'You passed on this auction' : (this.isSpectator ? 'Spectating live auction' : 'Cannot bid')}
             </div>
           `}
+          <div style="margin-top:10px;">
+            <button class="btn-secondary" style="width:100%;font-size:0.75rem;" onclick="game.reopenAuctionModal()">🔍 Re-open Auction Window</button>
+          </div>
         </div>
       `;
     } else {
@@ -2758,34 +3050,68 @@ class RichupGame {
   }
 
   placeAuctionBid(amount) {
-    this.sendAction({
-      action: 'PLACE_BID',
-      amount: amount
-    });
+    this.placeBid(amount);
   }
 
   passAuctionBid() {
-    this.sendAction({
-      action: 'PASS_BID'
-    });
+    this.passBid();
+  }
+
+  submitSidebarBid() {
+    const input = document.getElementById('sidebar-auction-bid-input');
+    if (!input) return;
+    const val = parseInt(input.value, 10);
+    if (isNaN(val) || val <= 0) return;
+    this.placeBid(val);
+  }
+
+  reopenAuctionModal() {
+    this.heldAuctionTileId = null;
+    this.renderAuction();
   }
 
   // ================= Flying Cash Delta Animation =================
   triggerCashDeltaAnimation(player, diff) {
     if (diff === 0) return;
+    if (!this.activeCashDeltaNodes) this.activeCashDeltaNodes = {};
+
     const isProfit = diff > 0;
     const text = isProfit ? `+${diff}` : `${diff}`;
     const cssClass = isProfit ? 'profit' : 'loss';
 
+    // Remove any previous in-flight node for this player to prevent overlap
+    if (this.activeCashDeltaNodes[player.id]) {
+      const old = this.activeCashDeltaNodes[player.id];
+      if (old.parentNode) old.parentNode.removeChild(old);
+      delete this.activeCashDeltaNodes[player.id];
+    }
+
+    const fly = document.createElement('span');
+    fly.id = `flying-delta-${player.id}`;
+    fly.className = `flying-cash-delta ${cssClass}`;
+    fly.innerText = text;
+
+    this.activeCashDeltaNodes[player.id] = fly;
+
     // Directly where the player balance is written in the sidebar (#player-cash-${p.id})
     const cashEl = document.getElementById(`player-cash-${player.id}`);
     if (cashEl) {
-      const fly = document.createElement('span');
-      fly.className = `flying-cash-delta ${cssClass}`;
-      fly.innerText = text;
       cashEl.appendChild(fly);
-      setTimeout(() => fly.remove(), 2000);
     }
+
+    fly.addEventListener('animationend', () => {
+      if (fly.parentNode) fly.parentNode.removeChild(fly);
+      if (this.activeCashDeltaNodes[player.id] === fly) {
+        delete this.activeCashDeltaNodes[player.id];
+      }
+    });
+
+    setTimeout(() => {
+      if (fly.parentNode) fly.parentNode.removeChild(fly);
+      if (this.activeCashDeltaNodes[player.id] === fly) {
+        delete this.activeCashDeltaNodes[player.id];
+      }
+    }, 2050);
   }
 
   // ================= Game Over =================

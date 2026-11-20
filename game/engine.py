@@ -20,7 +20,7 @@ DEFAULT_SETTINGS = {
     "max_players": 6,
     "double_rent_full_set": True,
     "no_rent_in_prison": True,
-    "even_build": True,
+    "even_build": False,
     "mortgage_enabled": True,
     "is_public": False
 }
@@ -327,7 +327,6 @@ class GameRoom:
                     res["dice"] = [d1, d2]
                     res["is_double"] = False
                     res["escaped_jail"] = True
-                    self.reset_turn_timer()
                     return res
             else:
                 self.log(f"{player['name']} failed to roll doubles (attempt {player['jail_turns']}/3).", "jail", "🔒", player["id"])
@@ -423,7 +422,6 @@ class GameRoom:
                     self.turn_phase = "WAITING_END_TURN"
                     if player["cash"] < 0:
                         res["action"] = "debt"
-                        self.reset_turn_timer()
                         self.log(f"⚠️ {player['name']} has an unaffordable rent! Balance is now ${player['cash']}. Must liquidate properties or trade before turn timer expires.", "debt", "⚠️", player["id"])
                     else:
                         res["action"] = "paid_rent"
@@ -437,7 +435,6 @@ class GameRoom:
             self.turn_phase = "WAITING_END_TURN"
             if player["cash"] < 0:
                 res["action"] = "debt"
-                self.reset_turn_timer()
                 self.log(f"⚠️ {player['name']} has a negative balance (${player['cash']}) after paying tax! Must liquidate properties or trade before turn timer expires.", "debt", "⚠️", player["id"])
             else:
                 res["action"] = "paid_tax"
@@ -540,7 +537,6 @@ class GameRoom:
                 self.free_parking_pool += amount
             self.turn_phase = "WAITING_END_TURN"
             if player["cash"] < 0:
-                self.reset_turn_timer()
                 self.log(f"⚠️ {player['name']} has a negative balance (${player['cash']})! Must liquidate properties or trade before turn timer expires.", "debt", "⚠️", player["id"])
 
         elif action == "move_to":
@@ -601,7 +597,6 @@ class GameRoom:
                     self.free_parking_pool += cost
                 self.turn_phase = "WAITING_END_TURN"
                 if player["cash"] < 0:
-                    self.reset_turn_timer()
                     self.log(f"⚠️ {player['name']} has a negative balance (${player['cash']}) after property repairs! Must liquidate or trade before turn ends.", "debt", "⚠️", player["id"])
             else:
                 self.turn_phase = "WAITING_END_TURN"
@@ -615,7 +610,6 @@ class GameRoom:
                 opp["cash"] += amount
             self.turn_phase = "WAITING_END_TURN"
             if player["cash"] < 0:
-                self.reset_turn_timer()
                 self.log(f"⚠️ {player['name']} has a negative balance (${player['cash']}) after paying each player! Must liquidate or trade before turn ends.", "debt", "⚠️", player["id"])
 
         elif action == "collect_each":
@@ -651,6 +645,28 @@ class GameRoom:
         self.log(f"{curr['name']} bought {tile['name']} for ${price}!", "purchase", "🏡", curr["id"])
         return True
 
+    def start_property_auction(self, player_id: str) -> bool:
+        curr = self.get_current_player()
+        if curr["id"] != player_id or self.turn_phase != "LANDED_ACTION":
+            return False
+        if not self.settings.get("auction_on_decline", True):
+            return False
+        tile_id = curr["position"]
+        tile = BOARD_TILES[tile_id]
+        self.log(f"{curr['name']} put {tile['name']} up for Public Auction!", "auction", "⚖️", curr["id"])
+        self.start_auction(tile_id)
+        return True
+
+    def pass_property(self, player_id: str) -> bool:
+        curr = self.get_current_player()
+        if curr["id"] != player_id or self.turn_phase != "LANDED_ACTION":
+            return False
+        tile_id = curr["position"]
+        tile = BOARD_TILES[tile_id]
+        self.log(f"{curr['name']} decided not to buy {tile['name']}.", "property", "⏭️", curr["id"])
+        self.turn_phase = "WAITING_END_TURN"
+        return True
+
     def decline_and_auction(self, player_id: str) -> bool:
         curr = self.get_current_player()
         if curr["id"] != player_id or self.turn_phase != "LANDED_ACTION":
@@ -658,11 +674,12 @@ class GameRoom:
 
         tile_id = curr["position"]
         tile = BOARD_TILES[tile_id]
-        self.log(f"{curr['name']} declined to buy {tile['name']}.", "property", "❌", curr["id"])
 
-        if self.settings["auction_on_decline"]:
+        if self.settings.get("auction_on_decline", True):
+            self.log(f"{curr['name']} opted to auction {tile['name']}.", "auction", "⚖️", curr["id"])
             self.start_auction(tile_id)
         else:
+            self.log(f"{curr['name']} passed on buying {tile['name']}.", "property", "⏭️", curr["id"])
             self.turn_phase = "WAITING_END_TURN"
         return True
 
@@ -755,6 +772,9 @@ class GameRoom:
 
         self.auction = None
         self.turn_phase = "WAITING_END_TURN"
+        # Ensure player has at least 15 seconds remaining on turn timer after auction ends
+        if self.turn_deadline <= time.time() + 10:
+            self.turn_deadline = time.time() + 15
 
     def end_turn(self, player_id: str) -> bool:
         curr = self.get_current_player()

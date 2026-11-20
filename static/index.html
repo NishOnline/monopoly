@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Richup.io - Online Multiplayer Board Game</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=20261120_7">
 </head>
+
 <body>
 
   <!-- Top Navigation Bar -->
@@ -48,7 +52,8 @@
     <!-- Screen 1: Welcome & Lobby Screen -->
     <section class="screen active" id="screen-welcome">
       <div id="lobby-screen">
-        <div class="lobby-box">
+        <!-- Welcome / Create & Join Card -->
+        <div id="lobby-welcome-box" class="lobby-box">
           <div class="lobby-header">
             <h1>Play Richup Online</h1>
             <p>Fast, competitive multiplayer property trading game with friends and bots</p>
@@ -56,6 +61,11 @@
 
           <!-- Initial Create / Join View -->
           <div id="lobby-welcome-view">
+            <div class="richup-setup-header" style="margin-bottom:18px;">
+              <div class="richup-3d-title">Richup.io</div>
+              <div class="richup-setup-subtitle">MULTIPLAYER MONOPOLY</div>
+            </div>
+
             <div class="lobby-tabs">
               <button class="lobby-tab active" data-target="tab-create">Create Game</button>
               <button class="lobby-tab" data-target="tab-join">Join With Code</button>
@@ -66,7 +76,8 @@
               <div class="tab-pane active" id="tab-create">
                 <div class="form-group">
                   <label for="input-player-name">Your Nickname</label>
-                  <input type="text" id="input-player-name" class="input-text" placeholder="Enter your name" maxlength="16" value="Tycoon">
+                  <input type="text" id="input-player-name" class="input-text" placeholder="Enter your name"
+                    maxlength="16" value="Tycoon">
                 </div>
 
                 <div class="form-group">
@@ -119,12 +130,14 @@
               <div class="tab-pane" id="tab-join">
                 <div class="form-group">
                   <label for="input-join-name">Your Nickname</label>
-                  <input type="text" id="input-join-name" class="input-text" placeholder="Enter your name" maxlength="16" value="Tycoon">
+                  <input type="text" id="input-join-name" class="input-text" placeholder="Enter your name"
+                    maxlength="16" value="Tycoon">
                 </div>
 
                 <div class="form-group">
                   <label for="input-room-code">5-Letter Room Code</label>
-                  <input type="text" id="input-room-code" class="input-text" placeholder="e.g. ABCDE" maxlength="6" style="text-transform:uppercase;font-family:monospace;letter-spacing:2px;font-weight:700;">
+                  <input type="text" id="input-room-code" class="input-text" placeholder="e.g. ABCDE" maxlength="6"
+                    style="text-transform:uppercase;font-family:monospace;letter-spacing:2px;font-weight:700;">
                 </div>
 
                 <button class="btn-primary" id="btn-join-room">
@@ -132,117 +145,169 @@
                 </button>
 
                 <div style="margin-top:24px;">
-                  <label style="font-size:0.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Open Public Games</label>
+                  <label style="font-size:0.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Open
+                    Public Games</label>
                   <div id="public-rooms-list" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- In-Room Lobby View (Once Connected) -->
-          <div id="room-lobby-view">
-            <div class="lobby-body">
-              <div class="room-players-section">
-                <div class="section-title">
-                  <span>Players in Lobby</span>
-                  <span style="font-size:0.85rem;color:var(--text-muted);">Max 6 Players</span>
+        <!-- In-Room Lobby View (Once Connected) - Richup.io 1-1 Game Setup Replica -->
+        <div id="room-lobby-view" style="display:none; width: 100%;">
+          <div class="richup-setup-container">
+            <!-- Top 3D Branding & Navigation Bar -->
+            <div class="richup-setup-topbar">
+              <button type="button" class="richup-top-btn" id="btn-login-dummy">LOG IN</button>
+              <div class="richup-setup-header">
+                <div class="richup-3d-title clickable-title" id="richup-logo-home" title="Return to Main Menu">Richup.io</div>
+                <div class="richup-setup-subtitle">GAME SETUP</div>
+              </div>
+              <button type="button" class="richup-top-btn btn-back-lobby" id="btn-back-top" title="Return to Main Menu">← BACK</button>
+            </div>
+
+            <!-- Main Glassmorphic Setup Card -->
+            <div class="richup-setup-card">
+              <!-- Left Column: Sliders & Bot Action -->
+              <div class="setup-col-left">
+                <!-- Starting Cash (1000, 1500, 2000, 2500) -->
+                <div class="setup-slider-section">
+                  <div class="setup-section-heading">STARTING CASH</div>
+                  <div class="setup-stepper-row">
+                    <button type="button" class="setup-stepper-btn" id="btn-cash-minus" title="Decrease $500">−</button>
+                    <div class="setup-slider-wrapper">
+                      <input type="range" id="setting-cash" min="1000" max="2500" step="500" value="1500" class="setup-golden-slider">
+                      <div class="setup-slider-badge-wrap">
+                        <div class="setup-slider-badge" id="badge-cash-val">$1,500</div>
+                      </div>
+                    </div>
+                    <button type="button" class="setup-stepper-btn" id="btn-cash-plus" title="Increase $500">+</button>
+                  </div>
+                  <div class="setup-slider-range-labels">
+                    <span>$1,000</span>
+                    <span>$2,500</span>
+                  </div>
                 </div>
-                <div class="lobby-players-grid" id="lobby-players-grid">
-                  <!-- Populated via JS -->
+
+                <!-- Turn Timer (Min 45s, Max 150s) -->
+                <div class="setup-slider-section">
+                  <div class="setup-section-heading">TURN TIMER</div>
+                  <div class="setup-slider-wrapper no-stepper">
+                    <input type="range" id="setting-timer-slider" min="0" max="4" step="1" value="0" class="setup-golden-slider timer-slider">
+                  </div>
+                  <div class="setup-slider-range-labels timer-ticks">
+                    <span data-idx="0" class="active">45s</span>
+                    <span data-idx="1">60s</span>
+                    <span data-idx="2">90s</span>
+                    <span data-idx="3">120s</span>
+                    <span data-idx="4">150s</span>
+                  </div>
+                  <input type="hidden" id="setting-timer" value="45">
+                </div>
+
+                <!-- Add AI Bot Button -->
+                <div class="setup-bot-action-wrap">
+                  <button type="button" class="btn-richup-add-bot" id="btn-add-bot">
+                    <span>🤖 ADD AI BOT</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- Host Settings Grid -->
-              <div class="room-settings-grid">
-                <div class="setting-item">
-                  <label for="setting-cash">Starting Cash</label>
-                  <select id="setting-cash" class="setting-select">
-                    <option value="1000">$1,000</option>
-                    <option value="1500" selected>$1,500 (Standard)</option>
-                    <option value="2000">$2,000 (Fast)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-timer">Turn Timer</label>
-                  <select id="setting-timer" class="setting-select">
-                    <option value="30">30 Seconds</option>
-                    <option value="45" selected>45 Seconds</option>
-                    <option value="60">60 Seconds</option>
-                    <option value="90">90 Seconds</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-parking">Free Parking Pool</label>
-                  <select id="setting-parking" class="setting-select">
-                    <option value="true" selected>Enabled (Jackpot)</option>
-                    <option value="false">Disabled (Classic)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-auction">Decline Auction</label>
-                  <select id="setting-auction" class="setting-select">
-                    <option value="true" selected>Enabled (Richup)</option>
-                    <option value="false">Disabled</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-double-rent">x2 Full-Set Rent</label>
-                  <select id="setting-double-rent" class="setting-select">
-                    <option value="true" selected>Enabled (Double base rent)</option>
-                    <option value="false">Disabled (Standard rent)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-prison-rent">Rent While in Prison</label>
-                  <select id="setting-prison-rent" class="setting-select">
-                    <option value="true" selected>No Rent (Owner in prison)</option>
-                    <option value="false">Collect Rent Normally</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-even-build">Even Build Rule</label>
-                  <select id="setting-even-build" class="setting-select">
-                    <option value="true" selected>Enabled (Even houses/hotels)</option>
-                    <option value="false">Disabled (Free build)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-mortgage">Mortgage Properties</label>
-                  <select id="setting-mortgage" class="setting-select">
-                    <option value="true" selected>Enabled (50% cost, 0 rent)</option>
-                    <option value="false">Disabled (No mortgages)</option>
-                  </select>
-                </div>
-                <div class="setting-item">
-                  <label for="setting-privacy">Room Visibility</label>
-                  <select id="setting-privacy" class="setting-select">
-                    <option value="false" selected>🔒 Private (Invite Only)</option>
-                    <option value="true">🌐 Public (Listed)</option>
-                  </select>
+              <!-- Right Column: 2x3 Grid of Richup Switches -->
+              <div class="setup-col-right">
+                <div class="setup-toggles-grid">
+                  <!-- Property Auctions (Green when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">PROPERTY AUCTIONS</div>
+                    <button type="button" class="richup-pill-toggle on green" id="toggle-auction" data-setting="setting-auction" data-color="green">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-auction" value="true">
+                  </div>
+
+                  <!-- 2x Rent on Full Set (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">2x RENT ON FULL SET</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-double-rent" data-setting="setting-double-rent" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-double-rent" value="true">
+                  </div>
+
+                  <!-- Rent While in Prison (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">RENT WHILE IN PRISON</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-prison-rent" data-setting="setting-prison-rent" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-prison-rent" value="true">
+                  </div>
+
+                  <!-- Mortgage Properties (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">MORTGAGE PROPERTIES</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-mortgage" data-setting="setting-mortgage" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-mortgage" value="true">
+                  </div>
+
+                  <!-- Even Houses Build (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">EVEN HOUSES BUILD</div>
+                    <button type="button" class="richup-pill-toggle off red" id="toggle-even-build" data-setting="setting-even-build" data-color="gold">
+                      <span class="toggle-text">OFF</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-even-build" value="false">
+                  </div>
+
+                  <!-- Room Visibility -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">ROOM VISIBILITY</div>
+                    <div class="richup-segmented-pill" id="segmented-privacy">
+                      <button type="button" class="seg-opt" data-val="true">Public</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt active" data-val="false">Private</button>
+                    </div>
+                    <input type="hidden" id="setting-privacy" value="false">
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Lobby Action Buttons -->
-              <div class="lobby-actions">
-                <button class="btn-secondary" id="btn-add-bot">
-                  <span>🤖 Add AI Bot</span>
+            <!-- Setup Bottom Action Bar -->
+            <div class="richup-setup-footer">
+              <div class="setup-footer-left">
+                <button type="button" class="richup-outline-btn btn-back-lobby" id="btn-back-setup" title="Return to Main Menu">← BACK</button>
+                <button type="button" class="richup-outline-btn" id="btn-toggle-lobby-chat">
+                  💬 Chat <span id="lobby-chat-pill-count" class="chat-badge-count" style="display:none;">0</span>
                 </button>
-                <button class="btn-primary btn-start" id="btn-start-game">
-                  <span>Start Game</span> 🎲
-                </button>
               </div>
-
-              <!-- Lobby Live Chat Box -->
-              <div class="lobby-chat-box">
-                <div class="lobby-chat-header">
-                  <span>💬 Room Chat</span>
+              <div class="setup-footer-right">
+                <div class="setup-players-strip" id="lobby-players-grid">
+                  <!-- Populated dynamically via JS -->
                 </div>
-                <div class="lobby-chat-messages" id="lobby-chat-messages"></div>
-                <form class="lobby-chat-input-bar" id="lobby-chat-form" onsubmit="event.preventDefault(); game.sendChatMessage('lobby');">
-                  <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Chat with players in lobby..." maxlength="200" autocomplete="off">
-                  <button type="submit" class="chat-send-btn" title="Send message">➤</button>
-                </form>
+                <button type="button" class="richup-start-btn" id="btn-start-game">START GAME</button>
               </div>
+            </div>
+
+            <!-- Floating / Drawer Lobby Chat -->
+            <div class="lobby-chat-drawer" id="lobby-chat-drawer" style="display:none;">
+              <div class="lobby-chat-header">
+                <span>💬 Room Chat</span>
+                <button type="button" class="chat-close-btn" id="btn-close-lobby-chat">✕</button>
+              </div>
+              <div class="lobby-chat-messages" id="lobby-chat-messages"></div>
+              <form class="lobby-chat-input-bar" id="lobby-chat-form" onsubmit="event.preventDefault(); game.sendChatMessage('lobby');">
+                <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Type a message..." maxlength="200" autocomplete="off">
+                <button type="submit" class="chat-send-btn">➤</button>
+              </form>
             </div>
           </div>
         </div>
@@ -293,7 +358,10 @@
                   <span>🏡 Buy Property</span>
                 </button>
                 <button class="action-btn btn-auction" id="btn-action-auction" style="display:none;">
-                  <span>⚖️ Decline & Auction</span>
+                  <span>⚖️ Start Auction</span>
+                </button>
+                <button class="action-btn btn-secondary" id="btn-action-pass-property" style="display:none;">
+                  <span>⏭️ Pass / Don't Buy</span>
                 </button>
                 <button class="action-btn btn-end-turn" id="btn-action-end" style="display:none;">
                   <span>⏭️ End Turn</span>
@@ -326,7 +394,8 @@
             <button class="sidebar-tab-btn" data-tab="activity">Activity</button>
             <button class="sidebar-tab-btn" data-tab="auctions">Auctions</button>
             <button class="sidebar-tab-btn" data-tab="trades">Trades</button>
-            <button class="sidebar-tab-btn" data-tab="chat">💬 Chat <span id="chat-unread-dot" class="chat-unread-dot" style="display:none;"></span></button>
+            <button class="sidebar-tab-btn" data-tab="chat">💬 Chat <span id="chat-unread-dot" class="chat-unread-dot"
+                style="display:none;"></span></button>
           </div>
         </div>
 
@@ -354,14 +423,17 @@
         <div class="sidebar-content chat-view-container" id="sidebar-chat-view" style="display:none;">
           <div class="chat-messages-stream" id="chat-messages-stream"></div>
           <form class="chat-input-bar" id="chat-form" onsubmit="event.preventDefault(); game.sendChatMessage('game');">
-            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="200" autocomplete="off">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="200"
+              autocomplete="off">
             <button type="submit" class="chat-send-btn" title="Send message">➤</button>
           </form>
         </div>
 
         <!-- Sidebar Footer Actions -->
-        <div class="sidebar-footer" style="padding:10px 14px;border-top:1px solid var(--border-color);background:rgba(0,0,0,0.25);">
-          <button class="btn-secondary" id="btn-voluntary-bankruptcy" style="width:100%;color:#ef4444;border-color:rgba(239,68,68,0.4);font-size:0.85rem;padding:9px;font-weight:700;">
+        <div class="sidebar-footer"
+          style="padding:10px 14px;border-top:1px solid var(--border-color);background:rgba(0,0,0,0.25);">
+          <button class="btn-secondary" id="btn-voluntary-bankruptcy"
+            style="width:100%;color:#ef4444;border-color:rgba(239,68,68,0.4);font-size:0.85rem;padding:9px;font-weight:700;">
             💀 Declare Bankruptcy
           </button>
         </div>
@@ -400,7 +472,8 @@
   <div class="modal-backdrop" id="modal-trade">
     <div class="modal-window trade-modal-window">
       <div class="modal-header">
-        <span class="modal-title" id="trade-desk-modal-title">🤝 Trade Desk: Deal with <span id="trade-partner-name" style="color:#38bdf8;">Player</span></span>
+        <span class="modal-title" id="trade-desk-modal-title">🤝 Trade Desk: Deal with <span id="trade-partner-name"
+            style="color:#38bdf8;">Player</span></span>
         <button class="modal-close" onclick="game.closeModal('modal-trade')">&times;</button>
       </div>
       <div class="modal-body">
@@ -448,8 +521,10 @@
           </div>
         </div>
         <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">
-          <button class="btn-secondary btn-modal-close" style="flex:none;padding:10px 18px;" onclick="game.closeModal('modal-trade')">Cancel</button>
-          <button class="btn-primary" id="btn-submit-trade-offer" style="flex:none;padding:10px 24px;" onclick="game.sendTradeOffer()">Send Proposal</button>
+          <button class="btn-secondary btn-modal-close" style="flex:none;padding:10px 18px;"
+            onclick="game.closeModal('modal-trade')">Cancel</button>
+          <button class="btn-primary" id="btn-submit-trade-offer" style="flex:none;padding:10px 24px;"
+            onclick="game.sendTradeOffer()">Send Proposal</button>
         </div>
       </div>
     </div>
@@ -500,7 +575,8 @@
     <div class="modal-window player-detail-window">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div id="player-detail-avatar" class="player-avatar-small" style="width:38px;height:38px;font-size:1.3rem;">🚗</div>
+          <div id="player-detail-avatar" class="player-avatar-small" style="width:38px;height:38px;font-size:1.3rem;">🚗
+          </div>
           <span class="modal-title" id="player-detail-name">Player Profile</span>
         </div>
         <button class="modal-close">&times;</button>
@@ -516,13 +592,21 @@
         <span class="modal-title">Richup.io Rules & Guide</span>
         <button class="modal-close">&times;</button>
       </div>
-      <div class="modal-body" style="max-height:480px;overflow-y:auto;font-size:0.88rem;line-height:1.6;color:var(--text-muted);">
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎯 Goal:</strong> Bankrupt your opponents by buying properties, collecting rent, and constructing houses and hotels!</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎲 Rolling Doubles:</strong> If you roll doubles, you get another turn! Rolling 3 consecutive doubles sends you straight to Jail.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies & Houses:</strong> Collect all properties in a color group to achieve a Monopoly. You can then build up to 4 houses and 1 hotel per property evenly across the group. Rent multiplies dramatically!</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">⚖️ Auctions:</strong> If an unowned property is declined, it is immediately auctioned off to the highest bidder starting from $10.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🤝 Trading:</strong> You can propose trades anytime with other players for properties and cash.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🅿️ Free Parking:</strong> Taxes and fines collected are deposited into the Jackpot pool. The player who lands on Free Parking wins the entire pot!</p>
+      <div class="modal-body"
+        style="max-height:480px;overflow-y:auto;font-size:0.88rem;line-height:1.6;color:var(--text-muted);">
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎯 Goal:</strong> Bankrupt your opponents by buying
+          properties, collecting rent, and constructing houses and hotels!</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎲 Rolling Doubles:</strong> If you roll doubles, you
+          get another turn! Rolling 3 consecutive doubles sends you straight to Jail.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies & Houses:</strong> Collect all
+          properties in a color group to achieve a Monopoly. You can then build up to 4 houses and 1 hotel per property
+          evenly across the group. Rent multiplies dramatically!</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">⚖️ Auctions:</strong> If an unowned property is
+          declined, it is immediately auctioned off to the highest bidder starting from $10.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🤝 Trading:</strong> You can propose trades anytime
+          with other players for properties and cash.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🅿️ Free Parking:</strong> Taxes and fines collected
+          are deposited into the Jackpot pool. The player who lands on Free Parking wins the entire pot!</p>
       </div>
     </div>
   </div>
@@ -537,11 +621,13 @@
       <div class="modal-body" style="padding:20px;">
         <p style="margin-bottom:16px;color:var(--text-muted);font-size:0.95rem;line-height:1.5;">
           Are you sure you want to declare bankruptcy? <br>
-          <span style="color:#ef4444;font-weight:600;">All your properties will immediately become unowned</span> and available on the board, and you will be eliminated from the match.
+          <span style="color:#ef4444;font-weight:600;">All your properties will immediately become unowned</span> and
+          available on the board, and you will be eliminated from the match.
         </p>
         <div style="display:flex;gap:12px;">
           <button class="btn-secondary btn-modal-close" style="flex:1;">Cancel</button>
-          <button class="btn-primary" id="btn-confirm-bankrupt-action" style="flex:1;background:#ef4444;border-color:#ef4444;">Declare Bankrupt</button>
+          <button class="btn-primary" id="btn-confirm-bankrupt-action"
+            style="flex:1;background:#ef4444;border-color:#ef4444;">Declare Bankrupt</button>
         </div>
       </div>
     </div>
@@ -549,19 +635,23 @@
 
   <!-- Action Reason / Error Popup Modal -->
   <div class="modal-backdrop" id="modal-action-reason">
-    <div class="modal-window" style="max-width:440px;text-align:center;border:1px solid rgba(239,68,68,0.45);box-shadow:0 20px 50px rgba(239,68,68,0.2);">
+    <div class="modal-window"
+      style="max-width:440px;text-align:center;border:1px solid rgba(239,68,68,0.45);box-shadow:0 20px 50px rgba(239,68,68,0.2);">
       <div class="modal-header" style="justify-content:center;position:relative;">
         <span class="modal-title" style="color:#ef4444;font-size:1.15rem;display:flex;align-items:center;gap:8px;">
           <span>⚠️</span> <span id="action-reason-title-text">Action Not Allowed</span>
         </span>
-        <button class="modal-close" style="position:absolute;right:12px;top:12px;" onclick="game.closeModal('modal-action-reason')">&times;</button>
+        <button class="modal-close" style="position:absolute;right:12px;top:12px;"
+          onclick="game.closeModal('modal-action-reason')">&times;</button>
       </div>
       <div class="modal-body" style="padding:22px 18px;">
         <div style="font-size:2.4rem;margin-bottom:12px;" id="action-reason-icon">🚫</div>
-        <p id="action-reason-message" style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 20px 0;font-weight:500;">
+        <p id="action-reason-message"
+          style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 20px 0;font-weight:500;">
           Reason message goes here.
         </p>
-        <button class="btn-primary" style="width:100%;padding:10px;font-weight:700;" onclick="game.closeModal('modal-action-reason')">
+        <button class="btn-primary" style="width:100%;padding:10px;font-weight:700;"
+          onclick="game.closeModal('modal-action-reason')">
           Understood
         </button>
       </div>
@@ -573,6 +663,7 @@
 
   <!-- Scripts -->
   <script src="/js/audio.js"></script>
-  <script src="/js/game.js?v=3"></script>
+  <script src="/js/game.js?v=20261120_7"></script>
 </body>
+
 </html>
