@@ -5,7 +5,6 @@ Makes realistic and competitive decisions for simulated players.
 
 import time
 from typing import Dict, Any, Optional
-from .board_data import BOARD_TILES, COLOR_GROUPS
 
 BOT_NAMES = [
     "Baron Bot", "Penny Pincher", "Tycoon Tom", "Luna Cash", 
@@ -65,31 +64,32 @@ class BotAI:
                 return True
             elif curr["cash"] >= 350:
                 self.room.pay_jail_fine(curr["id"])
-                self.last_action_time = now
+                self.last_action_time = now + 0.8
                 return True
             else:
                 self.room.roll_dice(curr["id"])
-                self.last_action_time = now
+                self.last_action_time = now + 1.5
                 return True
 
         # Normal Roll
         if self.room.turn_phase == "WAITING_ROLL":
             self.room.roll_dice(curr["id"])
-            self.last_action_time = now
+            # Allow human players time to watch dice roll and token movement across the board
+            self.last_action_time = now + 1.5
             return True
 
         # Buying / Declining property
         if self.room.turn_phase == "LANDED_ACTION":
             tile_id = curr["position"]
-            tile = BOARD_TILES[tile_id]
+            tile = self.room.board_tiles[tile_id]
             price = tile.get("price", 0)
 
             # Bot decides whether to buy
             should_buy = False
             # Check if completes monopoly
             group = tile.get("group")
-            if group in COLOR_GROUPS:
-                tiles_in_group = COLOR_GROUPS[group]["tiles"]
+            if group in self.room.color_groups:
+                tiles_in_group = self.room.color_groups[group]["tiles"]
                 owned_by_bot = sum(1 for tid in tiles_in_group if self.room.tile_states[tid]["owner"] == curr["id"])
                 if owned_by_bot == len(tiles_in_group) - 1:
                     should_buy = True  # Completes monopoly!
@@ -110,13 +110,13 @@ class BotAI:
         # End of turn actions (building, unmortgaging, ending turn)
         if self.room.turn_phase == "WAITING_END_TURN":
             # Check if bot can build houses on owned monopolies
-            for group_key, grp in COLOR_GROUPS.items():
-                if grp["name"] in ["Railroads", "Utilities"]:
+            for group_key, grp in self.room.color_groups.items():
+                if grp["name"] in ["Railroads", "Utilities", "Airports"]:
                     continue
                 if self.room.has_monopoly(curr["id"], group_key):
                     for tid in grp["tiles"]:
                         state = self.room.tile_states[tid]
-                        t = BOARD_TILES[tid]
+                        t = self.room.board_tiles[tid]
                         if state["houses"] < 5 and curr["cash"] >= t["house_cost"] + 250:
                             if self.room.build_house(curr["id"], tid):
                                 self.last_action_time = now
@@ -134,14 +134,18 @@ class BotAI:
         if not auction:
             return False
 
-        tile = BOARD_TILES[auction["tile_id"]]
+        # If this bot is already the highest bidder, do not bid against itself!
+        if auction.get("highest_bidder") == bot["id"]:
+            return False
+
+        tile = self.room.board_tiles[auction["tile_id"]]
         base_price = tile["price"]
         max_val = int(base_price * 1.1)
 
         # Check if completing monopoly
         group = tile.get("group")
-        if group in COLOR_GROUPS:
-            tiles_in_group = COLOR_GROUPS[group]["tiles"]
+        if group in self.room.color_groups:
+            tiles_in_group = self.room.color_groups[group]["tiles"]
             owned = sum(1 for tid in tiles_in_group if self.room.tile_states[tid]["owner"] == bot["id"])
             if owned == len(tiles_in_group) - 1:
                 max_val = int(base_price * 1.5)
@@ -167,7 +171,7 @@ class BotAI:
         for tid in list(bot["properties"]):
             state = self.room.tile_states[tid]
             if not state["mortgaged"] and state["houses"] == 0:
-                tile = BOARD_TILES[tid]
+                tile = self.room.board_tiles[tid]
                 group = tile.get("group")
                 if not self.room.has_monopoly(bot["id"], group):
                     self.room.mortgage_property(bot["id"], tid)
@@ -206,12 +210,12 @@ class BotAI:
         # Evaluate trade
         offer_val = trade["offer"].get("cash", 0)
         for tid in trade["offer"].get("properties", []):
-            offer_val += BOARD_TILES[int(tid)]["price"]
+            offer_val += self.room.board_tiles[int(tid)]["price"]
         offer_val += trade["offer"].get("jail_cards", 0) * 50
 
         request_val = trade["request"].get("cash", 0)
         for tid in trade["request"].get("properties", []):
-            request_val += BOARD_TILES[int(tid)]["price"]
+            request_val += self.room.board_tiles[int(tid)]["price"]
         request_val += trade["request"].get("jail_cards", 0) * 50
 
         # Bot accepts if offer value >= request value * 1.1

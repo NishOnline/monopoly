@@ -8,7 +8,7 @@ import random
 import time
 import uuid
 from typing import Dict, List, Optional, Any
-from .board_data import BOARD_TILES, COLOR_GROUPS, CHANCE_CARDS, COMMUNITY_CARDS
+from .board_data import BOARD_TILES, COLOR_GROUPS, CHANCE_CARDS, COMMUNITY_CARDS, MAPS
 
 DEFAULT_SETTINGS = {
     "starting_cash": 1500,
@@ -22,6 +22,9 @@ DEFAULT_SETTINGS = {
     "no_rent_in_prison": True,
     "even_build": False,
     "mortgage_enabled": True,
+    "advanced_shops": True,
+    "random_events": True,
+    "map": "standard",
     "is_public": False
 }
 
@@ -68,14 +71,14 @@ class GameRoom:
         self.player_order: List[str] = []
         self.current_player_idx = 0
 
-        # Board properties status: tile_id -> {owner: str|None, houses: int, mortgaged: bool}
+        # Board properties status and map configuration
+        self.board_tiles: List[Dict[str, Any]] = []
+        self.color_groups: Dict[str, Any] = {}
+        self.jail_tile_id: int = 10
+        self.vacation_tile_id: int = 20
+        self.goto_jail_tile_id: int = 30
         self.tile_states: Dict[int, Dict[str, Any]] = {}
-        for tile in BOARD_TILES:
-            self.tile_states[tile["id"]] = {
-                "owner": None,
-                "houses": 0,
-                "mortgaged": False
-            }
+        self.set_map(self.settings.get("map", "standard"))
 
         # Game state tracking
         self.turn_phase = "WAITING_ROLL"  # WAITING_ROLL, LANDED_ACTION, WAITING_END_TURN, AUCTION, DEBT
@@ -84,6 +87,11 @@ class GameRoom:
         self.free_parking_pool = 0
         self.last_card = None
         self.pending_debt = None  # {debtor_id, creditor_id, amount}
+
+        # Random Events cycle
+        self.active_event: Optional[Dict[str, Any]] = None
+        self.rounds_since_last_event = 0
+        self.current_round = 1
 
         # Turn Timer
         self.turn_deadline = 0
@@ -114,10 +122,41 @@ class GameRoom:
         # Add initial host player
         self.add_player(host_id, host_name, is_host=True)
 
+    def set_map(self, map_name: str):
+        if map_name not in MAPS:
+            map_name = "standard"
+        self.settings["map"] = map_name
+        cfg = MAPS[map_name]
+        self.board_tiles = copy.deepcopy(cfg["tiles"])
+        self.color_groups = copy.deepcopy(cfg["color_groups"])
+
+        self.jail_tile_id = 10
+        self.vacation_tile_id = 20
+        self.goto_jail_tile_id = 30
+        for t in self.board_tiles:
+            if t["type"] == "jail":
+                self.jail_tile_id = t["id"]
+            elif t["type"] == "parking":
+                self.vacation_tile_id = t["id"]
+            elif t["type"] == "gotojail":
+                self.goto_jail_tile_id = t["id"]
+
+        if self.state == "LOBBY":
+            self.tile_states = {}
+            for tile in self.board_tiles:
+                self.tile_states[tile["id"]] = {
+                    "owner": None,
+                    "houses": 0,
+                    "shops": 0,
+                    "mortgaged": False
+                }
+
     def update_settings(self, new_settings: Dict[str, Any]):
         for k, v in new_settings.items():
             if k in self.settings:
                 self.settings[k] = v
+        if "map" in new_settings and self.state == "LOBBY":
+            self.set_map(new_settings["map"])
         if "is_public" in new_settings:
             self.is_public = bool(new_settings["is_public"])
             self.settings["is_public"] = self.is_public
@@ -266,7 +305,8 @@ class GameRoom:
         # Move player
         steps = d1 + d2
         old_pos = curr["position"]
-        new_pos = (old_pos + steps) % 40
+        board_len = len(self.board_tiles)
+        new_pos = (old_pos + steps) % board_len
         passed_go = (new_pos < old_pos and steps > 0)
 
         curr["position"] = new_pos
@@ -284,13 +324,14 @@ class GameRoom:
         return result
 
     def _handle_jail_roll(self, player: Dict[str, Any], d1: int, d2: int, is_double: bool) -> Dict[str, Any]:
+        board_len = len(self.board_tiles)
         if is_double:
             player["in_jail"] = False
             player["jail_turns"] = 0
             self.consecutive_doubles = 0
             self.log(f"{player['name']} rolled doubles ({d1}, {d2}) and escaped Jail!", "jail", "🔓", player["id"])
             steps = d1 + d2
-            player["position"] = (10 + steps) % 40
+            player["position"] = (self.jail_tile_id + steps) % board_len
             res = self._process_tile_landing(player, player["position"], steps, False)
             res["dice"] = [d1, d2]
             res["is_double"] = True
@@ -309,7 +350,7 @@ class GameRoom:
                     player["in_jail"] = False
                     player["jail_turns"] = 0
                     steps = d1 + d2
-                    player["position"] = (10 + steps) % 40
+                    player["position"] = (self.jail_tile_id + steps) % board_len
                     res = self._process_tile_landing(player, player["position"], steps, False)
                     res["dice"] = [d1, d2]
                     res["is_double"] = False
@@ -322,7 +363,7 @@ class GameRoom:
                     player["in_jail"] = False
                     player["jail_turns"] = 0
                     steps = d1 + d2
-                    player["position"] = (10 + steps) % 40
+                    player["position"] = (self.jail_tile_id + steps) % board_len
                     res = self._process_tile_landing(player, player["position"], steps, False)
                     res["dice"] = [d1, d2]
                     res["is_double"] = False
@@ -345,7 +386,8 @@ class GameRoom:
             self.free_parking_pool += fine
         curr["in_jail"] = False
         curr["jail_turns"] = 0
-        self.log(f"{curr['name']} paid $50 fine to get out of Jail.", "jail", "💸", curr["id"])
+        self.turn_phase = "WAITING_END_TURN"
+        self.log(f"{curr['name']} paid $50 fine to get out of prison. That counts as their turn (no roll).", "jail", "💸", curr["id"])
         return True
 
     def use_jail_card(self, player_id: str) -> bool:
@@ -361,14 +403,14 @@ class GameRoom:
         return True
 
     def _send_to_jail(self, player: Dict[str, Any]):
-        player["position"] = 10
+        player["position"] = self.jail_tile_id
         player["in_jail"] = True
         player["jail_turns"] = 0
         self.consecutive_doubles = 0
         self.turn_phase = "WAITING_END_TURN"
 
     def _process_tile_landing(self, player: Dict[str, Any], tile_id: int, steps: int, is_double: bool) -> Dict[str, Any]:
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         tile_type = tile["type"]
         tile_name = tile["name"]
 
@@ -440,20 +482,21 @@ class GameRoom:
                 res["action"] = "paid_tax"
 
         elif tile_type == "parking":
+            player["vacation_skip"] = True
             if self.settings["free_parking_jackpot"] and self.free_parking_pool > 0:
                 jackpot = self.free_parking_pool
                 player["cash"] += jackpot
                 self.free_parking_pool = 0
-                self.log(f"{player['name']} hit Free Parking and won the ${jackpot} Jackpot!", "jackpot", "🎉", player["id"])
+                self.log(f"{player['name']} landed on Vacation, collected ${jackpot} Tax Pool, and will skip next turn!", "jackpot", "🌴", player["id"])
                 res["action"] = "won_jackpot"
                 res["jackpot"] = jackpot
             else:
-                self.log(f"{player['name']} is resting on Free Parking.", "parking", "🅿️", player["id"])
+                self.log(f"{player['name']} is relaxing on Vacation! Their next turn will be skipped.", "parking", "🌴", player["id"])
                 res["action"] = "free_parking"
             self.turn_phase = "WAITING_END_TURN"
 
         elif tile_type == "gotojail":
-            self.log(f"{player['name']} landed on Go To Jail!", "jail", "👮", player["id"])
+            self.log(f"{player['name']} landed on Go to prison!", "jail", "⛓️", player["id"])
             self._send_to_jail(player)
             res["action"] = "sent_to_jail"
 
@@ -470,7 +513,7 @@ class GameRoom:
         return res
 
     def calculate_rent(self, tile_id: int, dice_roll: int = 7) -> int:
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
         owner_id = state["owner"]
         if not owner_id or state["mortgaged"]:
@@ -483,31 +526,136 @@ class GameRoom:
 
         tile_type = tile["type"]
         group_key = tile.get("group")
-        group_info = COLOR_GROUPS.get(group_key)
+        group_info = self.color_groups.get(group_key)
 
         if tile_type == "property":
             houses = state["houses"]
             base_rent = tile["rent"][houses]
             if houses == 0 and self.has_monopoly(owner_id, group_key) and self.settings.get("double_rent_full_set", True):
-                return base_rent * 2
-            return base_rent
+                rent = base_rent * 2
+            else:
+                rent = base_rent
+            # Event modifier: URBAN_INFLATION (+25% rent on properties)
+            if self.active_event and self.active_event.get("id") == "URBAN_INFLATION":
+                rent = int(rent * 1.25)
+            return rent
 
         elif tile_type == "railroad":
             owned_railroads = sum(1 for tid in group_info["tiles"] if self.tile_states[tid]["owner"] == owner_id)
-            return tile["rent"][min(owned_railroads - 1, 3)]
+            rent = tile["rent"][min(owned_railroads - 1, 3)]
+            # Event modifier: TOURISM_SURGE (2x rent on transit/utilities)
+            if self.active_event and self.active_event.get("id") == "TOURISM_SURGE":
+                rent = int(rent * 2)
+            return rent
 
         elif tile_type == "utility":
             owned_utilities = sum(1 for tid in group_info["tiles"] if self.tile_states[tid]["owner"] == owner_id)
-            multiplier = 10 if owned_utilities == 2 else 4
-            return dice_roll * multiplier
+            multiplier = 15 if owned_utilities >= 3 else (10 if owned_utilities == 2 else 4)
+            rent = dice_roll * multiplier
+            # Event modifier: TOURISM_SURGE (2x rent on transit/utilities)
+            if self.active_event and self.active_event.get("id") == "TOURISM_SURGE":
+                rent = int(rent * 2)
+            return rent
 
         return 0
 
     def has_monopoly(self, player_id: str, group_key: str) -> bool:
-        if group_key not in COLOR_GROUPS:
+        if group_key not in self.color_groups:
             return False
-        tiles = COLOR_GROUPS[group_key]["tiles"]
+        tiles = self.color_groups[group_key]["tiles"]
         return all(self.tile_states[tid]["owner"] == player_id for tid in tiles)
+
+    def _format_card_desc_for_player(self, card: Dict[str, Any], player_name: str) -> str:
+        cid = card.get("id", "")
+        amt = card.get("amount", 0)
+
+        # Community Chest
+        if cid == "cc_go":
+            return f"{player_name} advanced to START and collected $200 salary!"
+        elif cid == "cc_bank_error":
+            return f"Bank error in {player_name}'s favor! Collected $200."
+        elif cid == "cc_doctor":
+            return f"Doctor's fee: {player_name} paid $50."
+        elif cid == "cc_stock":
+            return f"Stock sale! {player_name} collected $50."
+        elif cid == "cc_jail_free":
+            return f"{player_name} received a Get Out of Jail Free card."
+        elif cid == "cc_goto_jail":
+            return f"{player_name} went directly to prison!"
+        elif cid == "cc_holiday":
+            return f"Holiday fund matured! {player_name} received $100."
+        elif cid == "cc_tax_refund":
+            return f"Income tax refund! {player_name} collected $20."
+        elif cid == "cc_birthday":
+            return f"It is {player_name}'s birthday! Collected $10 from each player."
+        elif cid == "cc_life_insurance":
+            return f"Life insurance matured! {player_name} collected $100."
+        elif cid == "cc_hospital":
+            return f"Hospital fees: {player_name} paid $100."
+        elif cid == "cc_school":
+            return f"School tuition: {player_name} paid $50."
+        elif cid == "cc_consultancy":
+            return f"{player_name} received $25 consultancy fee."
+        elif cid == "cc_street_repairs":
+            return f"{player_name} was assessed for street repairs ($40/house, $115/hotel)."
+        elif cid == "cc_beauty":
+            return f"{player_name} won second prize in a beauty contest! Collected $10."
+        elif cid == "cc_inherit":
+            return f"{player_name} inherited $100!"
+
+        # Chance
+        elif cid == "ch_go":
+            return f"{player_name} advanced to START and collected $200 salary!"
+        elif cid == "ch_new_york":
+            return f"{player_name} advanced to New York!"
+        elif cid == "ch_london":
+            return f"{player_name} advanced to London!"
+        elif cid == "ch_shanghai":
+            return f"{player_name} advanced to Shanghai!"
+        elif cid == "ch_railroad":
+            return f"{player_name} flew to the nearest Airport!"
+        elif cid == "ch_utility":
+            return f"{player_name} advanced to the nearest Utility!"
+        elif cid == "ch_dividend":
+            return f"Bank dividend! {player_name} collected $50."
+        elif cid == "ch_jail_free":
+            return f"{player_name} received a Get Out of Jail Free card."
+        elif cid == "ch_back_3":
+            return f"{player_name} stepped back 3 spaces."
+        elif cid == "ch_goto_jail":
+            return f"{player_name} went directly to prison!"
+        elif cid == "ch_repairs":
+            return f"{player_name} made property repairs ($25/house, $100/hotel)."
+        elif cid == "ch_speeding":
+            return f"Speeding fine! {player_name} paid $15."
+        elif cid == "ch_chairman":
+            return f"{player_name} was elected Chairman of the Board! Paid each player $50."
+        elif cid == "ch_building_loan":
+            return f"{player_name}'s building loan matured! Collected $150."
+
+        # Generic action fallback
+        action = card.get("action")
+        if action == "collect":
+            return f"{player_name} collected ${amt}!"
+        elif action == "pay":
+            return f"{player_name} paid ${amt}."
+        elif action == "collect_each":
+            return f"{player_name} collected ${amt} from each player."
+        elif action == "pay_each":
+            return f"{player_name} paid each player ${amt}."
+
+        desc = card.get("desc", "")
+        desc = desc.replace("You won", f"{player_name} won")
+        desc = desc.replace("You have won", f"{player_name} won")
+        desc = desc.replace("you get", f"{player_name} gets")
+        desc = desc.replace("You inherit", f"{player_name} inherits")
+        desc = desc.replace("your favor", f"{player_name}'s favor")
+        desc = desc.replace("Your building", f"{player_name}'s building")
+        desc = desc.replace("your property", f"{player_name}'s property")
+        desc = desc.replace("You are", f"{player_name} was")
+        desc = desc.replace("You have", f"{player_name} was")
+        desc = desc.replace("Advance to", f"{player_name} advances to")
+        return desc
 
     def _draw_card(self, player: Dict[str, Any], deck_type: str) -> Dict[str, Any]:
         deck = self.chance_deck if deck_type == "chance" else self.community_deck
@@ -517,13 +665,16 @@ class GameRoom:
             deck.extend(refill)
 
         card = deck.pop(0)
+        initial_pos = player["position"]
+        formatted_desc = self._format_card_desc_for_player(card, player["name"])
         self.last_card = {
+            "id": str(uuid.uuid4())[:8],
             "type": deck_type,
             "title": card["title"],
-            "desc": card["desc"],
+            "desc": formatted_desc,
             "player_name": player["name"]
         }
-        self.log(f"{player['name']} drew {card['title']}: {card['desc']}", "card", "🎴", player["id"])
+        self.log(f"{player['name']} drew {card['title']}: {formatted_desc}", "card", "🎴", player["id"])
 
         action = card["action"]
         if action == "collect":
@@ -541,35 +692,52 @@ class GameRoom:
 
         elif action == "move_to":
             old_pos = player["position"]
-            target = card["target"]
-            if target < old_pos and target != 10:  # Passed GO
+            target = card.get("target", 0)
+            target_name = card.get("target_name")
+            if target_name:
+                for t in self.board_tiles:
+                    if t.get("name") == target_name:
+                        target = t["id"]
+                        break
+            if target < old_pos and target != self.jail_tile_id:  # Passed GO
                 salary = self.settings["go_salary"]
                 player["cash"] += salary
                 self.log(f"{player['name']} passed GO and collected ${salary}!", "money", "💵", player["id"])
             player["position"] = target
+            self.last_card["intermediate_tile"] = initial_pos
+            self.last_card["destination_tile"] = target
             self._process_tile_landing(player, target, 7, False)
 
         elif action == "move_steps":
             steps = card["steps"]
-            player["position"] = (player["position"] + steps) % 40
-            self._process_tile_landing(player, player["position"], 7, False)
+            target = (player["position"] + steps) % len(self.board_tiles)
+            player["position"] = target
+            self.last_card["intermediate_tile"] = initial_pos
+            self.last_card["destination_tile"] = target
+            self._process_tile_landing(player, target, 7, False)
 
         elif action == "nearest_railroad":
-            railroads = [5, 15, 25, 35]
+            railroads = [t["id"] for t in self.board_tiles if t["type"] == "railroad"]
             pos = player["position"]
-            nearest = min(railroads, key=lambda r: (r - pos) % 40)
+            board_len = len(self.board_tiles)
+            nearest = min(railroads, key=lambda r: (r - pos) % board_len) if railroads else pos
             if nearest < pos:
                 player["cash"] += self.settings["go_salary"]
             player["position"] = nearest
+            self.last_card["intermediate_tile"] = initial_pos
+            self.last_card["destination_tile"] = nearest
             self._process_tile_landing(player, nearest, 7, False)
 
         elif action == "nearest_utility":
-            utilities = [12, 28]
+            utilities = [t["id"] for t in self.board_tiles if t["type"] == "utility"]
             pos = player["position"]
-            nearest = min(utilities, key=lambda u: (u - pos) % 40)
+            board_len = len(self.board_tiles)
+            nearest = min(utilities, key=lambda u: (u - pos) % board_len) if utilities else pos
             if nearest < pos:
                 player["cash"] += self.settings["go_salary"]
             player["position"] = nearest
+            self.last_card["intermediate_tile"] = initial_pos
+            self.last_card["destination_tile"] = nearest
             self._process_tile_landing(player, nearest, 7, False)
 
         elif action == "jail_free":
@@ -577,6 +745,8 @@ class GameRoom:
             self.turn_phase = "WAITING_END_TURN"
 
         elif action == "goto_jail":
+            self.last_card["intermediate_tile"] = initial_pos
+            self.last_card["destination_tile"] = self.jail_tile_id
             self._send_to_jail(player)
 
         elif action == "repairs":
@@ -629,7 +799,7 @@ class GameRoom:
             return False
 
         tile_id = curr["position"]
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
 
         if state["owner"] is not None:
@@ -652,7 +822,7 @@ class GameRoom:
         if not self.settings.get("auction_on_decline", True):
             return False
         tile_id = curr["position"]
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         self.log(f"{curr['name']} put {tile['name']} up for Public Auction!", "auction", "⚖️", curr["id"])
         self.start_auction(tile_id)
         return True
@@ -662,7 +832,7 @@ class GameRoom:
         if curr["id"] != player_id or self.turn_phase != "LANDED_ACTION":
             return False
         tile_id = curr["position"]
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         self.log(f"{curr['name']} decided not to buy {tile['name']}.", "property", "⏭️", curr["id"])
         self.turn_phase = "WAITING_END_TURN"
         return True
@@ -673,7 +843,7 @@ class GameRoom:
             return False
 
         tile_id = curr["position"]
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
 
         if self.settings.get("auction_on_decline", True):
             self.log(f"{curr['name']} opted to auction {tile['name']}.", "auction", "⚖️", curr["id"])
@@ -684,7 +854,7 @@ class GameRoom:
         return True
 
     def start_auction(self, tile_id: int):
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         bidders = [p["id"] for p in self.players.values() if not p["is_bankrupt"]]
         self.auction = {
             "tile_id": tile_id,
@@ -694,10 +864,10 @@ class GameRoom:
             "highest_bidder": None,
             "bidders": bidders,
             "passed": [],
-            "deadline": None  # Auction has no running timer initially; ends 3s after final bet is held
+            "deadline": time.time() + 15.0  # 15s initial window to place first bid; concludes as unsold if expired
         }
         self.turn_phase = "AUCTION"
-        self.log(f"Public Auction started for {tile['name']}!", "auction", "⚖️")
+        self.log(f"Public Auction started for {tile['name']}! (15s to place bids)", "auction", "⚖️")
 
     def place_bid(self, player_id: str, amount: int) -> bool:
         if not self.auction or self.turn_phase != "AUCTION":
@@ -710,8 +880,8 @@ class GameRoom:
 
         self.auction["highest_bid"] = amount
         self.auction["highest_bidder"] = player_id
-        # Auctions end only after 3 seconds after players hold their final bet
-        self.auction["deadline"] = time.time() + 3.0
+        # Auctions countdown 5s after each bid to give players time to respond
+        self.auction["deadline"] = time.time() + 5.0
 
         self.log(f"{player['name']} bid ${amount} for {self.auction['tile_name']}.", "auction", "🏷️", player_id)
         return True
@@ -725,8 +895,8 @@ class GameRoom:
             if player:
                 self.log(f"{player['name']} passed on {self.auction['tile_name']}.", "auction", "✋", player_id)
 
-        # Check if only 1 bidder left or all passed
-        active_left = [b for b in self.auction["bidders"] if b not in self.auction["passed"]]
+        # Check if only 1 bidder left or all passed (filtering out any players who became bankrupt)
+        active_left = [b for b in self.auction["bidders"] if b not in self.auction["passed"] and not self.players.get(b, {}).get("is_bankrupt")]
         if len(active_left) == 0:
             self._conclude_auction()
         elif len(active_left) == 1 and self.auction["highest_bidder"] == active_left[0]:
@@ -739,7 +909,7 @@ class GameRoom:
             return
         winner_id = self.auction["highest_bidder"]
         tile_id = self.auction["tile_id"]
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
 
         if winner_id and self.auction["highest_bid"] > 0:
@@ -749,6 +919,8 @@ class GameRoom:
             state["owner"] = winner_id
             winner["properties"].append(tile_id)
             self.log(f"Auction won by {winner['name']} for ${bid}!", "auction", "🏆", winner_id)
+            if winner["cash"] < 0:
+                self.log(f"⚠️ {winner['name']} has a negative balance (${winner['cash']}) after auction! Must liquidate before ending turn.", "debt", "⚠️", winner_id)
             self.auction_history.append({
                 "tile_id": tile_id,
                 "tile_name": tile["name"],
@@ -799,18 +971,44 @@ class GameRoom:
         return True
 
     def _advance_to_next_player(self):
-        # Move index to next non-bankrupt player
+        old_idx = self.current_player_idx
+        # Move index to next non-bankrupt player, skipping any player whose turn is skipped due to Vacation
         attempts = 0
-        while attempts < len(self.player_order):
+        max_attempts = max(1, len(self.player_order) * 2)
+        while attempts < max_attempts:
             self.current_player_idx = (self.current_player_idx + 1) % len(self.player_order)
             next_player = self.players[self.player_order[self.current_player_idx]]
-            if not next_player["is_bankrupt"]:
-                break
-            attempts += 1
+            if next_player["is_bankrupt"]:
+                attempts += 1
+                continue
+            if next_player.get("vacation_skip"):
+                next_player["vacation_skip"] = False
+                self.log(f"🌴 {next_player['name']} is relaxing on Vacation! Turn skipped.", "turn", "🌴", next_player["id"])
+                attempts += 1
+                continue
+            break
 
         self.turn_count += 1
         self.turn_phase = "WAITING_ROLL"
         self.reset_turn_timer()
+
+        # Check round progression (wrapped around to start of order)
+        if self.current_player_idx <= old_idx:
+            self.current_round += 1
+            self.rounds_since_last_event += 1
+
+            # Decrement active event duration
+            if self.active_event:
+                self.active_event["remaining_rounds"] -= 1
+                if self.active_event["remaining_rounds"] <= 0:
+                    exp_name = self.active_event["name"]
+                    self.active_event = None
+                    self.log(f"Market Event Concluded: {exp_name} has ended.", "event", "🔔")
+
+            # Check for new random event trigger (every 4-6 rounds)
+            if self.settings.get("random_events", True) and not self.active_event:
+                if self.rounds_since_last_event >= 4:
+                    self._trigger_random_event()
 
         # Check win condition
         active_players = [p for p in self.players.values() if not p["is_bankrupt"]]
@@ -820,6 +1018,69 @@ class GameRoom:
 
         curr = self.get_current_player()
         self.log(f"Turn {self.turn_count}: {curr['name']}'s turn.", "turn", "⏳", curr["id"])
+
+    def _trigger_random_event(self):
+        self.rounds_since_last_event = 0
+        events = [
+            {
+                "id": "REAL_ESTATE_BOOM",
+                "name": "Real Estate Boom",
+                "emoji": "📈",
+                "description": "Property market surges! Mortgage borrowing power increased by +50% for 3 rounds.",
+                "duration": 3
+            },
+            {
+                "id": "MARKET_CORRECTION",
+                "name": "Economic Stimulus",
+                "emoji": "💵",
+                "description": "Federal stimulus! All active players receive a $100 cash grant from the reserve.",
+                "duration": 1
+            },
+            {
+                "id": "URBAN_INFLATION",
+                "name": "Urban Inflation",
+                "emoji": "💸",
+                "description": "Inflation spikes! All property rents increased by 25% for 3 rounds.",
+                "duration": 3
+            },
+            {
+                "id": "TOURISM_SURGE",
+                "name": "Tourism Surge",
+                "emoji": "✈️",
+                "description": "Tourism is booming! All Airports and Utilities collect 2x income for 3 rounds.",
+                "duration": 3
+            },
+            {
+                "id": "TAX_REFORMS",
+                "name": "Wealth Equity Levy",
+                "emoji": "🏛️",
+                "description": "Tax reform! The wealthiest player contributes $150 to the Vacation Jackpot pool.",
+                "duration": 1
+            }
+        ]
+        ev = random.choice(events)
+        self.active_event = {
+            "id": ev["id"],
+            "name": ev["name"],
+            "emoji": ev["emoji"],
+            "description": ev["description"],
+            "remaining_rounds": ev["duration"]
+        }
+
+        # Immediate effects
+        if ev["id"] == "MARKET_CORRECTION":
+            for p in self.players.values():
+                if not p["is_bankrupt"]:
+                    p["cash"] += 100
+        elif ev["id"] == "TAX_REFORMS":
+            richest = max((p for p in self.players.values() if not p["is_bankrupt"]), key=lambda p: p["cash"], default=None)
+            if richest and richest["cash"] > 0:
+                tax_amt = min(150, richest["cash"])
+                richest["cash"] -= tax_amt
+                self.free_parking_pool += tax_amt
+                self.log(f"{richest['name']} paid ${tax_amt} Wealth Tax into the Vacation pool.", "tax", "🏛️", richest["id"])
+
+        self.log(f"⚡ RANDOM EVENT: {ev['emoji']} {ev['name']}! {ev['description']}", "event", ev["emoji"])
 
     def _enter_debt(self, debtor: Dict[str, Any], creditor_id: Optional[str], amount: int, reason: str):
         self.pending_debt = {
@@ -845,6 +1106,7 @@ class GameRoom:
             state = self.tile_states[tid]
             state["owner"] = None
             state["houses"] = 0
+            state["shops"] = 0
             state["mortgaged"] = False
 
         player["cash"] = 0
@@ -892,8 +1154,12 @@ class GameRoom:
 
     # Building & Mortgage
     def build_house(self, player_id: str, tile_id: int) -> ActionResult:
+        curr_p = self.get_current_player()
+        if not curr_p or curr_p["id"] != player_id:
+            return ActionResult(False, "Houses and hotels can only be built during your own turn.")
+
         player = self.players.get(player_id)
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
 
         if not player:
@@ -905,10 +1171,10 @@ class GameRoom:
 
         group_key = tile["group"]
         if not self.has_monopoly(player_id, group_key):
-            grp_name = COLOR_GROUPS[group_key].get("name", group_key).title()
+            grp_name = self.color_groups[group_key].get("name", group_key).title()
             return ActionResult(False, f"Monopoly Required: You must own all properties in the {grp_name} color set before building houses.")
 
-        group_tiles = COLOR_GROUPS[group_key]["tiles"]
+        group_tiles = self.color_groups[group_key]["tiles"]
         # Check none are mortgaged
         if any(self.tile_states[tid]["mortgaged"] for tid in group_tiles):
             return ActionResult(False, "Cannot Build: One of the properties in this color set is currently mortgaged. You must unmortgage it first.")
@@ -935,7 +1201,7 @@ class GameRoom:
 
     def sell_house(self, player_id: str, tile_id: int) -> ActionResult:
         player = self.players.get(player_id)
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
 
         if not player or state["owner"] != player_id:
@@ -944,7 +1210,7 @@ class GameRoom:
             return ActionResult(False, "There are no houses to sell on this property.")
 
         group_key = tile["group"]
-        group_tiles = COLOR_GROUPS[group_key]["tiles"]
+        group_tiles = self.color_groups[group_key]["tiles"]
 
         # Even selling rule: target property cannot have fewer houses than any other in group
         if self.settings.get("even_build", True):
@@ -958,11 +1224,23 @@ class GameRoom:
         self.log(f"{player['name']} sold a house on {tile['name']} for ${refund}.", "sell", "🔨", player_id)
         return ActionResult(True, f"Successfully sold a house on {tile['name']} for ${refund}.")
 
+    def get_property_mortgage_value(self, tile_id: int) -> int:
+        tile = self.board_tiles[tile_id]
+        state = self.tile_states[tile_id]
+        base_mortgage = tile.get("mortgage", 0)
+        # Advanced shops boost mortgage borrowing value by 60% of shop cost
+        if state.get("shops", 0) > 0:
+            base_mortgage += int(tile.get("house_cost", 100) * 0.6)
+        # Real Estate Boom event: +50% mortgage borrowing power
+        if self.active_event and self.active_event.get("id") == "REAL_ESTATE_BOOM":
+            base_mortgage = int(base_mortgage * 1.5)
+        return base_mortgage
+
     def mortgage_property(self, player_id: str, tile_id: int) -> ActionResult:
         if not self.settings.get("mortgage_enabled", True):
             return ActionResult(False, "Mortgaging properties is disabled in this room.")
         player = self.players.get(player_id)
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
 
         if not player or state["owner"] != player_id:
@@ -971,19 +1249,21 @@ class GameRoom:
             return ActionResult(False, "This property is already mortgaged.")
 
         if tile["type"] == "property":
-            group_tiles = COLOR_GROUPS[tile["group"]]["tiles"]
+            group_tiles = self.color_groups[tile["group"]]["tiles"]
+            # Note: shops do NOT prevent mortgaging (per user spec: properties with shops can be mortgaged without destroying or selling shops)
             if any(self.tile_states[tid]["houses"] > 0 for tid in group_tiles):
                 return ActionResult(False, "Cannot Mortgage: You must sell all houses/hotels across this entire color set before mortgaging any property in it.")
 
-        val = tile["mortgage"]
+        val = self.get_property_mortgage_value(tile_id)
         state["mortgaged"] = True
         player["cash"] += val
-        self.log(f"{player['name']} mortgaged {tile['name']} for ${val}.", "mortgage", "📑", player_id)
+        shop_note = " (includes shop boost)" if state.get("shops", 0) > 0 else ""
+        self.log(f"{player['name']} mortgaged {tile['name']}{shop_note} for ${val}.", "mortgage", "📑", player_id)
         return ActionResult(True, f"Successfully mortgaged {tile['name']} for ${val}.")
 
     def unmortgage_property(self, player_id: str, tile_id: int) -> ActionResult:
         player = self.players.get(player_id)
-        tile = BOARD_TILES[tile_id]
+        tile = self.board_tiles[tile_id]
         state = self.tile_states[tile_id]
 
         if not player or state["owner"] != player_id:
@@ -991,7 +1271,8 @@ class GameRoom:
         if not state["mortgaged"]:
             return ActionResult(False, "This property is not currently mortgaged.")
 
-        cost = int(tile["mortgage"] * 1.1)
+        val = self.get_property_mortgage_value(tile_id)
+        cost = int(val * 1.1)
         if player["cash"] < cost:
             return ActionResult(False, f"Insufficient Cash: Unmortgaging costs ${cost} (principal + 10% interest), but your balance is only ${player['cash']}.")
 
@@ -999,6 +1280,50 @@ class GameRoom:
         state["mortgaged"] = False
         self.log(f"{player['name']} unmortgaged {tile['name']} for ${cost}.", "mortgage", "🔑", player_id)
         return ActionResult(True, f"Successfully unmortgaged {tile['name']}.")
+
+    def build_shop(self, player_id: str, tile_id: int) -> ActionResult:
+        if not self.settings.get("advanced_shops", True):
+            return ActionResult(False, "Advanced Shops are disabled in this room.")
+        player = self.players.get(player_id)
+        tile = self.board_tiles[tile_id]
+        state = self.tile_states[tile_id]
+
+        if not player:
+            return ActionResult(False, "Player not found.")
+        if state["owner"] != player_id:
+            return ActionResult(False, "You do not own this property.")
+        if tile["type"] != "property":
+            return ActionResult(False, "Advanced shops can only be built on street color properties.")
+        if state.get("shops", 0) >= 1:
+            return ActionResult(False, "Maximum Limit Reached: A shop is already built on this property.")
+
+        cost = tile.get("house_cost", 100)
+        if player["cash"] < cost:
+            return ActionResult(False, f"Insufficient Cash: Building a shop costs ${cost}, but your balance is only ${player['cash']}.")
+
+        player["cash"] -= cost
+        state["shops"] = 1
+        mort_boost = int(cost * 0.6)
+        self.log(f"{player['name']} built an Advanced Shop 🏪 on {tile['name']} for ${cost} (+${mort_boost} mortgage value).", "build", "🏪", player_id)
+        return ActionResult(True, f"Successfully built an Advanced Shop on {tile['name']}.")
+
+    def sell_shop(self, player_id: str, tile_id: int) -> ActionResult:
+        if not self.settings.get("advanced_shops", True):
+            return ActionResult(False, "Advanced Shops are disabled in this room.")
+        player = self.players.get(player_id)
+        tile = self.board_tiles[tile_id]
+        state = self.tile_states[tile_id]
+
+        if not player or state["owner"] != player_id:
+            return ActionResult(False, "You do not own this property.")
+        if state.get("shops", 0) <= 0:
+            return ActionResult(False, "There is no shop to sell on this property.")
+
+        refund = tile.get("house_cost", 100) // 2
+        state["shops"] = 0
+        player["cash"] += refund
+        self.log(f"{player['name']} sold the shop on {tile['name']} for ${refund}.", "sell", "🏪", player_id)
+        return ActionResult(True, f"Successfully sold the shop on {tile['name']} for ${refund}.")
 
     # Trading System
     def create_trade(self, sender_id: str, receiver_id: str, offer: Dict[str, Any], request: Dict[str, Any]) -> Optional[str]:
@@ -1022,8 +1347,8 @@ class GameRoom:
             if self.tile_states[tid]["owner"] != sender_id:
                 return None
             # Must have 0 houses on entire color group
-            t = BOARD_TILES[tid]
-            if t["type"] == "property" and any(self.tile_states[ot]["houses"] > 0 for ot in COLOR_GROUPS[t["group"]]["tiles"]):
+            t = self.board_tiles[tid]
+            if t["type"] == "property" and any(self.tile_states[ot]["houses"] > 0 for ot in self.color_groups[t["group"]]["tiles"]):
                 return None
 
         # Validate request
@@ -1032,8 +1357,8 @@ class GameRoom:
         for tid in request_props:
             if self.tile_states[tid]["owner"] != receiver_id:
                 return None
-            t = BOARD_TILES[tid]
-            if t["type"] == "property" and any(self.tile_states[ot]["houses"] > 0 for ot in COLOR_GROUPS[t["group"]]["tiles"]):
+            t = self.board_tiles[tid]
+            if t["type"] == "property" and any(self.tile_states[ot]["houses"] > 0 for ot in self.color_groups[t["group"]]["tiles"]):
                 return None
 
         trade_id = str(uuid.uuid4())[:8]
@@ -1181,7 +1506,7 @@ class GameRoom:
             return 0
         nw = player["cash"]
         for tid in player["properties"]:
-            tile = BOARD_TILES[tid]
+            tile = self.board_tiles[tid]
             state = self.tile_states[tid]
             if state["mortgaged"]:
                 nw += tile.get("mortgage", 0)
@@ -1189,6 +1514,8 @@ class GameRoom:
                 nw += tile.get("price", 0)
                 houses = state.get("houses", 0)
                 nw += houses * (tile.get("house_cost", 0) // 2)
+                if state.get("shops", 0) > 0:
+                    nw += tile.get("house_cost", 0) // 2
         return nw
 
     def serialize(self) -> Dict[str, Any]:
@@ -1206,7 +1533,7 @@ class GameRoom:
             prop_val = 0
             houses_val = 0
             for tid in p["properties"]:
-                t = BOARD_TILES[tid]
+                t = self.board_tiles[tid]
                 st = self.tile_states[tid]
                 if st["mortgaged"]:
                     prop_val += t.get("mortgage", 0)
@@ -1220,7 +1547,7 @@ class GameRoom:
 
             # Monopolies completed
             monopolies = []
-            for g_key in COLOR_GROUPS:
+            for g_key in self.color_groups:
                 if self.has_monopoly(pid, g_key):
                     monopolies.append(g_key)
             p_data["monopolies"] = monopolies
@@ -1233,15 +1560,10 @@ class GameRoom:
 
             players_serialized.append(p_data)
 
-        # Include time left for turn
+        # Include time left for turn - continues until player ends turn
         now = time.time()
-        # Timer pauses after playing the turn until End Turn is pressed, unless player is in negative balance
         if self.state == "PLAYING":
-            curr = self.get_current_player()
-            if self.turn_phase == "WAITING_END_TURN" and curr and curr["cash"] >= 0:
-                time_left = 0
-            else:
-                time_left = max(0, int(self.turn_deadline - now))
+            time_left = max(0, int(self.turn_deadline - now))
         else:
             time_left = 0
 
@@ -1266,8 +1588,11 @@ class GameRoom:
             "last_dice": self.last_dice,
             "consecutive_doubles": self.consecutive_doubles,
             "free_parking_pool": self.free_parking_pool,
+            "last_card": self.last_card,
             "turn_time_left": time_left,
             "turn_count": self.turn_count,
+            "current_round": getattr(self, "current_round", 1),
+            "active_event": getattr(self, "active_event", None),
             "auction": auction_data,
             "pending_debt": self.pending_debt,
             "tile_states": self.tile_states,

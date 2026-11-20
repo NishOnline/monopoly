@@ -29,7 +29,8 @@
 
   --board-size: min(94vh, calc(100vw - 370px), 940px);
   --tile-radius: 6px;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', 'Fredoka', -apple-system, sans-serif;
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -193,12 +194,23 @@ body {
 
 .screen {
   flex: 1;
-  display: none;
+  display: none !important;
   width: 100%;
 }
 
 .screen.active {
-  display: flex;
+  display: flex !important;
+}
+
+#screen-welcome.active {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
 }
 
 /* ================= Screen 1: Welcome & Lobby ================= */
@@ -410,9 +422,17 @@ body {
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
 }
 
+
+
 /* In-Lobby Room View */
 #room-lobby-view {
   display: none;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .room-players-section {
@@ -602,7 +622,7 @@ body {
   overflow: auto;
 }
 
-/* 11x11 Grid Board Layout */
+/* 11x11 Grid Board Layout (Standard) */
 .monopoly-board {
   width: var(--board-size);
   height: var(--board-size);
@@ -618,9 +638,41 @@ body {
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
 }
 
+/* 13x13 Grid Board Layout (Extended "Mr. Worldwide") */
+.monopoly-board.map-extended {
+  grid-template-columns: 13.5% repeat(11, 6.63%) 13.5% !important;
+  grid-template-rows: 13.5% repeat(11, 6.63%) 13.5% !important;
+}
+
+.monopoly-board.map-extended .board-center {
+  grid-column: 2 / span 11 !important;
+  grid-row: 2 / span 11 !important;
+}
+
+.monopoly-board.map-extended .richup-city-name {
+  font-size: 0.65rem;
+}
+
+.monopoly-board.map-extended .richup-price-tag {
+  font-size: 0.62rem;
+  padding: 1px 4px;
+}
+
+.monopoly-board.map-extended .richup-flag-circle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+}
+
+.monopoly-board.map-extended .richup-flag-circle svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* Tile Base Styling - Richup 1-1 Replica */
 .tile {
-  background-color: #171d28;
+  background: linear-gradient(180deg, #1d1b38 0%, #131224 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   position: relative;
@@ -628,7 +680,7 @@ body {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s ease, background 0.2s ease, z-index 0.15s ease;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 .tile:hover {
@@ -638,18 +690,37 @@ body {
   border-color: rgba(255, 255, 255, 0.25);
 }
 
-/* Color Group Richup Background Gradients - Clean neutral background, no confusing group colors on map */
-.tile.group-bg-brown,
-.tile.group-bg-lightblue,
-.tile.group-bg-pink,
-.tile.group-bg-orange,
-.tile.group-bg-red,
-.tile.group-bg-yellow,
-.tile.group-bg-green,
-.tile.group-bg-darkblue,
-.tile.group-bg-railroad,
-.tile.group-bg-utility {
-  background: #151824;
+/* Distinct Special Tile Aesthetics Matching Richup.io World Tour */
+/* Water Company */
+.tile-27 {
+  background: linear-gradient(135deg, #0e7490 0%, #0c2d3a 100%) !important;
+  border-color: rgba(6, 182, 212, 0.5) !important;
+}
+/* Power Company */
+.tile-12 {
+  background: linear-gradient(135deg, #2e2609 0%, #141324 100%) !important;
+  border-color: rgba(234, 179, 8, 0.45) !important;
+}
+/* Treasure (Chests) */
+.tile-2, .tile-17, .tile-33 {
+  background: linear-gradient(135deg, #2b1a0a 0%, #141324 100%) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+/* Surprise (Chances) */
+.tile-8, .tile-22, .tile-36 {
+  background: linear-gradient(135deg, #300c24 0%, #141324 100%) !important;
+  border-color: rgba(236, 72, 153, 0.35) !important;
+}
+/* Airports (TLV, MUC, CDG, JFK) */
+.tile-5, .tile-15, .tile-25, .tile-35, .tile-6, .tile-18, .tile-30, .tile-42 {
+  background: linear-gradient(135deg, #1b2537 0%, #101522 100%) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+}
+
+/* Gas Company */
+.tile-gas, .tile-special-gas {
+  background: linear-gradient(135deg, #361d06 0%, #141324 100%) !important;
+  border-color: rgba(249, 115, 22, 0.45) !important;
 }
 
 /* Richup Circular Flag Badge */
@@ -731,89 +802,242 @@ body {
   flex-shrink: 0;
 }
 
-/* Edge-Specific Orientations */
-/* Left Column: Horizontal tiles facing board center */
-.tile.edge-left,
+/* Edge-Specific Orientations (Matching Richup.io World Tour) */
+/* Top Row: Vertical tiles with price at outer top, flag at bottom (inner, facing center) */
+.tile.edge-top,
+.tile-1, .tile-2, .tile-3, .tile-4, .tile-5, .tile-6, .tile-7, .tile-8, .tile-9 {
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px 6px 4px;
+}
+
+.edge-top .richup-price-tag { order: 1; }
+.edge-top .richup-tile-info {
+  order: 2;
+  align-items: center;
+  width: 100%;
+}
+.edge-top .richup-flag-circle { order: 3; }
+
+.edge-top .richup-city-name {
+  text-align: center;
+  width: 100%;
+}
+
+/* Right Column: Tiles along right vertical edge facing center (-90deg rotation) */
+.tile.edge-right,
 .tile-11, .tile-12, .tile-13, .tile-14, .tile-15, .tile-16, .tile-17, .tile-18, .tile-19 {
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  padding: 4px 10px 4px 12px;
-  gap: 7px;
+  justify-content: space-between;
+  padding: 4px 6px 4px 6px;
+  position: relative;
+  overflow: hidden;
 }
 
-.edge-left .richup-tile-info {
-  align-items: flex-start;
-  flex: 1;
-  min-width: 0;
-  gap: 3px;
-}
-
-.edge-left .richup-city-name {
-  text-align: left;
-  width: 100%;
-}
-
-/* Right Column: Horizontal tiles facing board center */
-.tile.edge-right,
-.tile-31, .tile-32, .tile-33, .tile-34, .tile-35, .tile-36, .tile-37, .tile-38, .tile-39 {
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 4px 12px 4px 10px;
-  gap: 7px;
+.edge-right .richup-flag-circle {
+  order: 1;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  flex-shrink: 0;
 }
 
 .edge-right .richup-tile-info {
-  align-items: flex-start;
+  order: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   min-width: 0;
-  gap: 3px;
+  height: 100%;
+  padding: 0 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.edge-right .richup-price-tag {
+  order: 3;
+  transform: rotate(-90deg);
+  transform-origin: center center;
+  flex-shrink: 0;
 }
 
 .edge-right .richup-city-name {
-  text-align: left;
-  width: 100%;
+  transform: rotate(-90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+  font-family: 'Outfit', 'Fredoka', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  letter-spacing: -0.2px;
+  max-width: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  line-height: 1;
 }
 
-/* Bottom Row: Vertical tiles */
+/* Bottom Row: Vertical tiles with flag on top (inner, facing center), price at outer bottom */
 .tile.edge-bottom,
-.tile-1, .tile-2, .tile-3, .tile-4, .tile-5, .tile-6, .tile-7, .tile-8, .tile-9 {
-  flex-direction: column-reverse;
+.tile-21, .tile-22, .tile-23, .tile-24, .tile-25, .tile-26, .tile-27, .tile-28, .tile-29 {
+  flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 4px 10px 4px;
+  padding: 6px 4px 6px 4px;
 }
 
+.edge-bottom .richup-flag-circle { order: 1; }
 .edge-bottom .richup-tile-info {
+  order: 2;
   align-items: center;
   width: 100%;
-  gap: 3px;
 }
+.edge-bottom .richup-price-tag { order: 3; }
 
 .edge-bottom .richup-city-name {
   text-align: center;
   width: 100%;
 }
 
-/* Top Row: Vertical tiles */
-.tile.edge-top,
-.tile-21, .tile-22, .tile-23, .tile-24, .tile-25, .tile-26, .tile-27, .tile-28, .tile-29 {
-  flex-direction: column;
+/* Left Column: Tiles along left vertical edge facing center (90deg rotation) */
+.tile.edge-left,
+.tile-31, .tile-32, .tile-33, .tile-34, .tile-35, .tile-36, .tile-37, .tile-38, .tile-39 {
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 4px 6px 4px;
+  padding: 4px 6px 4px 6px;
+  position: relative;
+  overflow: hidden;
 }
 
-.edge-top .richup-tile-info {
+.edge-left .richup-price-tag {
+  order: 1;
+  transform: rotate(90deg);
+  transform-origin: center center;
+  flex-shrink: 0;
+}
+
+.edge-left .richup-tile-info {
+  order: 2;
+  display: flex;
   align-items: center;
-  width: 100%;
-  gap: 3px;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 2px;
+  overflow: hidden;
+  position: relative;
 }
 
-.edge-top .richup-city-name {
+.edge-left .richup-flag-circle {
+  order: 3;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  flex-shrink: 0;
+}
+
+.edge-left .richup-city-name {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+  font-family: 'Outfit', 'Fredoka', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 800;
+  color: #ffffff;
   text-align: center;
-  width: 100%;
+  letter-spacing: -0.2px;
+  max-width: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Advanced Shop Badge on Tiles */
+.tile-shop-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background: rgba(16, 185, 129, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 2px 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.shop-svg-icon {
+  width: 12px;
+  height: 12px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.shop-btn-icon {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  vertical-align: middle;
+  filter: brightness(0) invert(1);
+}
+
+.shop-deed-icon {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Active Random Event Banner */
+.active-event-banner {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(245, 158, 11, 0.28) 100%);
+  border: 1.5px solid rgba(245, 158, 11, 0.6);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+  animation: banner-pulse 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes banner-pulse {
+  0% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 10px rgba(245, 158, 11, 0.1); }
+  100% { border-color: rgba(245, 158, 11, 0.9); box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
+}
+
+.event-banner-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fbbf24;
+  text-transform: uppercase;
+}
+
+.event-banner-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.event-banner-desc {
+  font-size: 0.74rem;
+  color: #e2e8f0;
+  line-height: 1.25;
 }
 
 /* Spectator Pill in Nav */
@@ -836,111 +1060,255 @@ body {
   50% { box-shadow: 0 0 12px 2px rgba(139, 92, 246, 0.4); }
 }
 
-/* Tile Grid Placement */
-/* Bottom row: 0 (bottom-right) down to 10 (bottom-left) */
-.tile-0  { grid-column: 11; grid-row: 11; }
-.tile-1  { grid-column: 10; grid-row: 11; }
-.tile-2  { grid-column: 9;  grid-row: 11; }
-.tile-3  { grid-column: 8;  grid-row: 11; }
-.tile-4  { grid-column: 7;  grid-row: 11; }
-.tile-5  { grid-column: 6;  grid-row: 11; }
-.tile-6  { grid-column: 5;  grid-row: 11; }
-.tile-7  { grid-column: 4;  grid-row: 11; }
-.tile-8  { grid-column: 3;  grid-row: 11; }
-.tile-9  { grid-column: 2;  grid-row: 11; }
-.tile-10 { grid-column: 1;  grid-row: 11; }
+/* Tile Grid Placement matching Richup.io World Tour */
+/* Top row: 0 (top-left) up to 10 (top-right) */
+.tile-0  { grid-column: 1;  grid-row: 1; }
+.tile-1  { grid-column: 2;  grid-row: 1; }
+.tile-2  { grid-column: 3;  grid-row: 1; }
+.tile-3  { grid-column: 4;  grid-row: 1; }
+.tile-4  { grid-column: 5;  grid-row: 1; }
+.tile-5  { grid-column: 6;  grid-row: 1; }
+.tile-6  { grid-column: 7;  grid-row: 1; }
+.tile-7  { grid-column: 8;  grid-row: 1; }
+.tile-8  { grid-column: 9;  grid-row: 1; }
+.tile-9  { grid-column: 10; grid-row: 1; }
+.tile-10 { grid-column: 11; grid-row: 1; }
 
-/* Left col: 11 to 20 (top-left) */
-.tile-11 { grid-column: 1; grid-row: 10; }
-.tile-12 { grid-column: 1; grid-row: 9;  }
-.tile-13 { grid-column: 1; grid-row: 8;  }
-.tile-14 { grid-column: 1; grid-row: 7;  }
-.tile-15 { grid-column: 1; grid-row: 6;  }
-.tile-16 { grid-column: 1; grid-row: 5;  }
-.tile-17 { grid-column: 1; grid-row: 4;  }
-.tile-18 { grid-column: 1; grid-row: 3;  }
-.tile-19 { grid-column: 1; grid-row: 2;  }
-.tile-20 { grid-column: 1; grid-row: 1;  }
+/* Right col: 11 down to 20 (bottom-right) */
+.tile-11 { grid-column: 11; grid-row: 2;  }
+.tile-12 { grid-column: 11; grid-row: 3;  }
+.tile-13 { grid-column: 11; grid-row: 4;  }
+.tile-14 { grid-column: 11; grid-row: 5;  }
+.tile-15 { grid-column: 11; grid-row: 6;  }
+.tile-16 { grid-column: 11; grid-row: 7;  }
+.tile-17 { grid-column: 11; grid-row: 8;  }
+.tile-18 { grid-column: 11; grid-row: 9;  }
+.tile-19 { grid-column: 11; grid-row: 10; }
+.tile-20 { grid-column: 11; grid-row: 11; }
 
-/* Top row: 21 to 30 (top-right) */
-.tile-21 { grid-column: 2;  grid-row: 1; }
-.tile-22 { grid-column: 3;  grid-row: 1; }
-.tile-23 { grid-column: 4;  grid-row: 1; }
-.tile-24 { grid-column: 5;  grid-row: 1; }
-.tile-25 { grid-column: 6;  grid-row: 1; }
-.tile-26 { grid-column: 7;  grid-row: 1; }
-.tile-27 { grid-column: 8;  grid-row: 1; }
-.tile-28 { grid-column: 9;  grid-row: 1; }
-.tile-29 { grid-column: 10; grid-row: 1; }
-.tile-30 { grid-column: 11; grid-row: 1; }
+/* Bottom row: 21 down to 30 (bottom-left) */
+.tile-21 { grid-column: 10; grid-row: 11; }
+.tile-22 { grid-column: 9;  grid-row: 11; }
+.tile-23 { grid-column: 8;  grid-row: 11; }
+.tile-24 { grid-column: 7;  grid-row: 11; }
+.tile-25 { grid-column: 6;  grid-row: 11; }
+.tile-26 { grid-column: 5;  grid-row: 11; }
+.tile-27 { grid-column: 4;  grid-row: 11; }
+.tile-28 { grid-column: 3;  grid-row: 11; }
+.tile-29 { grid-column: 2;  grid-row: 11; }
+.tile-30 { grid-column: 1;  grid-row: 11; }
 
-/* Right col: 31 to 39 */
-.tile-31 { grid-column: 11; grid-row: 2;  }
-.tile-32 { grid-column: 11; grid-row: 3;  }
-.tile-33 { grid-column: 11; grid-row: 4;  }
-.tile-34 { grid-column: 11; grid-row: 5;  }
-.tile-35 { grid-column: 11; grid-row: 6;  }
-.tile-36 { grid-column: 11; grid-row: 7;  }
-.tile-37 { grid-column: 11; grid-row: 8;  }
-.tile-38 { grid-column: 11; grid-row: 9;  }
-.tile-39 { grid-column: 11; grid-row: 10; }
+/* Left col: 31 up to 39 */
+.tile-31 { grid-column: 1; grid-row: 10; }
+.tile-32 { grid-column: 1; grid-row: 9;  }
+.tile-33 { grid-column: 1; grid-row: 8;  }
+.tile-34 { grid-column: 1; grid-row: 7;  }
+.tile-35 { grid-column: 1; grid-row: 6;  }
+.tile-36 { grid-column: 1; grid-row: 5;  }
+.tile-37 { grid-column: 1; grid-row: 4;  }
+.tile-38 { grid-column: 1; grid-row: 3;  }
+.tile-39 { grid-column: 1; grid-row: 2;  }
 
 /* Corner Tiles */
 .tile-corner {
-  background-color: #171f2d;
+  background-color: #151426;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 6px;
   text-align: center;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
 }
 
-.tile-corner .corner-icon {
-  font-size: 1.8rem;
-  margin-bottom: 4px;
+/* Corner 0: START */
+.tile-corner-start {
+  background: radial-gradient(circle at center, #064e3b 0%, #022c22 100%) !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.35);
 }
 
-.tile-corner .corner-name {
+.corner-start-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.start-text-glow {
+  font-family: 'Outfit', 'Fredoka', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #4ade80;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.85);
+  letter-spacing: 1.5px;
+}
+
+.start-arrow-badge {
+  font-size: 1.1rem;
+  color: #34d399;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+  margin-top: 1px;
+}
+
+/* Corner 10: Jail (Passing by / In Prison) */
+.tile-corner-jail {
+  background: #121422 !important;
+  border: 1.5px solid #334155 !important;
+  box-shadow: inset 0 0 14px rgba(51, 65, 85, 0.4);
+}
+
+.corner-jail-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.corner-jail-passing {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.corner-jail-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cartoon-jail-svg {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.corner-jail-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  text-transform: uppercase;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* Corner 20: Vacation */
+.tile-corner-vacation {
+  background: radial-gradient(circle at center, #064e3b 0%, #0c4a6e 100%) !important;
+  border: 1.5px solid #0284c7 !important;
+  box-shadow: inset 0 0 16px rgba(2, 132, 199, 0.35);
+}
+
+.corner-vacation-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cartoon-vacation-svg {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.corner-vacation-title {
+  font-family: 'Outfit', 'Fredoka', sans-serif;
   font-size: 0.72rem;
   font-weight: 800;
+  color: #38bdf8;
   text-transform: uppercase;
-  color: #fff;
-  line-height: 1.1;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
 }
 
-/* Property Owner Stripe - Only shown when owned by a player */
+.vacation-jackpot-pill {
+  background: #facc15;
+  color: #111;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  border-radius: 12px;
+  padding: 1px 7px;
+  margin-top: 2px;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+  letter-spacing: 0.5px;
+}
+
+/* Corner 30: Go to prison */
+.tile-corner-gotojail {
+  background: radial-gradient(circle at center, #450a0a 0%, #171120 100%) !important;
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: inset 0 0 16px rgba(239, 68, 68, 0.3);
+}
+
+.corner-gotojail-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cartoon-skull-svg {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.corner-gotojail-title {
+  font-family: 'Outfit', 'Fredoka', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #f87171;
+  text-transform: uppercase;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* Property Color Group Stripe */
 .color-bar {
   position: absolute;
   z-index: 2;
   pointer-events: none;
-  display: none; /* hidden until owned */
+  display: block;
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 /* Orientation of color bars (outer edge) */
-/* Bottom row: bar at bottom */
-.edge-bottom .color-bar,
-.tile-1 .color-bar, .tile-3 .color-bar, .tile-6 .color-bar, .tile-8 .color-bar, .tile-9 .color-bar {
-  bottom: 0; left: 0; right: 0; height: 6px; border-radius: 0 0 8px 8px;
-}
-
-/* Left column: bar on left */
-.edge-left .color-bar,
-.tile-11 .color-bar, .tile-13 .color-bar, .tile-14 .color-bar, .tile-16 .color-bar, .tile-18 .color-bar, .tile-19 .color-bar {
-  top: 0; bottom: 0; left: 0; width: 6px; border-radius: 8px 0 0 8px;
-}
-
-/* Top row: bar at top */
+/* Top row: bar at top outer edge */
 .edge-top .color-bar,
-.tile-21 .color-bar, .tile-23 .color-bar, .tile-24 .color-bar, .tile-26 .color-bar, .tile-27 .color-bar, .tile-29 .color-bar {
-  top: 0; left: 0; right: 0; height: 6px; border-radius: 8px 8px 0 0;
+.tile-1 .color-bar, .tile-3 .color-bar, .tile-5 .color-bar, .tile-6 .color-bar, .tile-7 .color-bar, .tile-9 .color-bar {
+  top: 0; left: 0; right: 0; height: 5px; border-radius: 6px 6px 0 0;
 }
 
-/* Right column: bar on right */
+/* Right col: bar at right outer edge */
 .edge-right .color-bar,
-.tile-31 .color-bar, .tile-32 .color-bar, .tile-34 .color-bar, .tile-37 .color-bar, .tile-39 .color-bar {
-  top: 0; bottom: 0; right: 0; width: 6px; border-radius: 0 8px 8px 0;
+.tile-11 .color-bar, .tile-12 .color-bar, .tile-13 .color-bar, .tile-14 .color-bar, .tile-15 .color-bar, .tile-16 .color-bar, .tile-18 .color-bar, .tile-19 .color-bar {
+  top: 0; bottom: 0; right: 0; width: 5px; border-radius: 0 6px 6px 0;
+}
+
+/* Bottom row: bar at bottom outer edge */
+.edge-bottom .color-bar,
+.tile-21 .color-bar, .tile-23 .color-bar, .tile-24 .color-bar, .tile-25 .color-bar, .tile-26 .color-bar, .tile-27 .color-bar, .tile-28 .color-bar, .tile-29 .color-bar {
+  bottom: 0; left: 0; right: 0; height: 5px; border-radius: 0 0 6px 6px;
+}
+
+/* Left col: bar at left outer edge */
+.edge-left .color-bar,
+.tile-31 .color-bar, .tile-32 .color-bar, .tile-34 .color-bar, .tile-35 .color-bar, .tile-37 .color-bar, .tile-39 .color-bar {
+  top: 0; bottom: 0; left: 0; width: 5px; border-radius: 6px 0 0 6px;
 }
 
 /* Color Group Swatches */
@@ -1023,20 +1391,319 @@ body {
   left: 1px; top: 0; bottom: 0; flex-direction: column;
 }
 
-.house-pip {
-  width: 7px;
-  height: 7px;
-  background-color: #22c55e;
-  border-radius: 1px;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+/* Authentic Richup.io House, Hotel & Shop Unified Pill Badges */
+.richup-house-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 6px;
+  padding: 2px 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #000000;
+  white-space: nowrap;
+  line-height: 1;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: house-badge-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.hotel-pip {
+.badge-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.dev-divider {
+  width: 1px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  margin: 0 1px;
+  flex-shrink: 0;
+}
+
+.shop-pill-icon {
+  width: 12px;
+  height: 12px;
+  display: block;
+  filter: brightness(0);
+}
+
+@keyframes house-badge-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.house-svg-icon {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.hotel-svg-icon {
   width: 14px;
-  height: 8px;
-  background-color: #ef4444;
-  border-radius: 2px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+  height: 14px;
+  display: block;
+}
+
+.house-badge-multiplier {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: -0.2px;
+}
+
+/* Floating Notification Card Popup Box (Matching Richup.io Card Event - positioned below End Turn) */
+.richup-card-popup {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%) scale(1);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 12px;
+  padding: 8px 28px 8px 14px;
+  min-width: 170px;
+  max-width: 280px;
+  box-shadow: 0 10px 28px rgba(217, 119, 6, 0.55), 0 3px 10px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: card-popup-enter 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
+}
+
+@keyframes card-popup-enter {
+  0% { transform: translateX(-50%) scale(0.75); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+.richup-card-popup.popup-surprise {
+  background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+  box-shadow: 0 10px 28px rgba(236, 72, 153, 0.55), 0 3px 10px rgba(0, 0, 0, 0.6);
+}
+
+.richup-card-popup.popup-vacation {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 10px 28px rgba(16, 185, 129, 0.55), 0 3px 10px rgba(0, 0, 0, 0.6);
+}
+
+.card-popup-close {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.card-popup-close:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.card-popup-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Room Code Copy Pill Badge in Game Setup Menu */
+.setup-room-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 20px;
+  padding: 4px 12px;
+  margin-top: 6px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, background 0.15s ease;
+  user-select: none;
+}
+
+.setup-room-code-badge:hover {
+  background: rgba(245, 158, 11, 0.28);
+  transform: scale(1.04);
+}
+
+.room-code-lbl {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: 0.5px;
+}
+
+.room-code-val {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 2px;
+}
+
+.btn-copy-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.copy-toast {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  animation: toast-fade 1.2s forwards;
+}
+
+@keyframes toast-fade {
+  0% { opacity: 0; transform: translate(-50%, 4px); }
+  20% { opacity: 1; transform: translate(-50%, 0); }
+  80% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -4px); }
+}
+
+/* Public Rooms Browser Styles */
+.public-rooms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.public-rooms-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-refresh-rooms {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-refresh-rooms:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.public-rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.public-room-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.public-room-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.public-room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.public-room-code-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-room-code {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #f59e0b;
+  letter-spacing: 1.5px;
+}
+
+.public-room-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-lobby {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.badge-playing {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.public-room-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.btn-join-public {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-join-public:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 /* Owner Tag / Bar - Sits along Inner Edge facing board center */
@@ -1106,41 +1773,62 @@ body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  z-index: 8;
+  gap: 3px;
+  z-index: 12;
   pointer-events: none;
   padding: 2px;
 }
 
+/* On START tile, stack player tokens into a clean vertical column matching Richup.io */
+#tokens-tile-0 {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-left: 8px;
+  gap: 3px;
+}
+
 .player-token {
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: #111;
-  border: 2px solid #fff;
+  background: #111827;
+  border: 2.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 10px var(--pcolor, #38bdf8), 0 3px 6px rgba(0, 0, 0, 0.85);
+  position: relative;
+  z-index: 10;
+  will-change: transform;
+}
+
+.player-token.token-spawn {
   animation: token-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.player-token .token-emoji {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+
 .player-token.swishing {
-  animation: token-swish 0.14s cubic-bezier(0.2, 0.8, 0.4, 1.2) forwards;
+  animation: token-swish 0.11s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   z-index: 25;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.9), 0 0 10px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 14px var(--pcolor, rgba(59, 130, 246, 0.9)), 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
 @keyframes token-swish {
   0% {
-    transform: scale(0.9) translateY(0);
-    filter: brightness(1.1);
+    transform: scale(0.95) translateY(0);
   }
-  50% {
-    transform: scale(1.35) translateY(-8px);
-    filter: brightness(1.4);
+  45% {
+    transform: scale(1.22) translateY(-7px);
+    filter: brightness(1.25);
   }
   100% {
     transform: scale(1) translateY(0);
@@ -1573,6 +2261,18 @@ body {
 
 .badge-bot { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
 .badge-jail { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.badge-vacation {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.badge-debt {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-weight: 800;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  animation: debt-blink 1.2s ease-in-out infinite;
+}
 .badge-bankrupt { background: #334155; color: #94a3b8; }
 
 .player-financials {
@@ -2448,9 +3148,11 @@ body {
     padding: 1px 3px;
   }
   .player-token {
-    width: 20px;
-    height: 20px;
-    font-size: 0.75rem;
+    width: 25px;
+    height: 25px;
+  }
+  .player-token .token-emoji {
+    font-size: 0.95rem;
   }
   .dice-cube {
     width: 42px;

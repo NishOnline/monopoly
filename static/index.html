@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=20261120_7">
+  <link rel="stylesheet" href="/css/style.css?v=20261121_4">
 </head>
 
 <body>
@@ -31,7 +31,7 @@
 
     <div class="nav-center">
       <div class="jackpot-pill" id="nav-jackpot-pill" style="display: none;">
-        <span>🅿️ Jackpot:</span>
+        <span>🌴 Vacation:</span>
         <span id="jackpot-pool-amount">$0</span>
       </div>
       <div class="spectator-pill" id="nav-spectator-pill" style="display: none;">
@@ -69,6 +69,7 @@
             <div class="lobby-tabs">
               <button class="lobby-tab active" data-target="tab-create">Create Game</button>
               <button class="lobby-tab" data-target="tab-join">Join With Code</button>
+              <button class="lobby-tab" data-target="tab-public" id="tab-btn-public">Public Rooms</button>
             </div>
 
             <div class="lobby-body">
@@ -143,19 +144,25 @@
                 <button class="btn-primary" id="btn-join-room">
                   <span>Join Room</span> 🚪
                 </button>
+              </div>
 
-                <div style="margin-top:24px;">
-                  <label style="font-size:0.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Open
-                    Public Games</label>
-                  <div id="public-rooms-list" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
+              <!-- Public Rooms Browser Pane -->
+              <div class="tab-pane" id="tab-public">
+                <div class="public-rooms-header">
+                  <span class="public-rooms-title">Public Game Rooms</span>
+                  <button type="button" class="btn-refresh-rooms" id="btn-refresh-public-rooms" onclick="game.fetchPublicRooms()">🔄 Refresh</button>
+                </div>
+                <div class="public-rooms-list" id="public-rooms-list">
+                  <div class="rooms-loading">Scanning for open rooms...</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- In-Room Lobby View (Once Connected) - Richup.io 1-1 Game Setup Replica -->
-        <div id="room-lobby-view" style="display:none; width: 100%;">
+      <!-- In-Room Lobby View (Once Connected) - Richup.io 1-1 Game Setup Replica -->
+      <div id="room-lobby-view" style="display:none; width: 100%;">
           <div class="richup-setup-container">
             <!-- Top 3D Branding & Navigation Bar -->
             <div class="richup-setup-topbar">
@@ -163,6 +170,13 @@
               <div class="richup-setup-header">
                 <div class="richup-3d-title clickable-title" id="richup-logo-home" title="Return to Main Menu">Richup.io</div>
                 <div class="richup-setup-subtitle">GAME SETUP</div>
+                <!-- Room Code Copy Pill -->
+                <div class="setup-room-code-badge" id="setup-room-code-badge" onclick="game.copyRoomCode()" title="Click to copy Room Code">
+                  <span class="room-code-lbl">ROOM:</span>
+                  <span class="room-code-val" id="setup-room-code-val">----</span>
+                  <span class="btn-copy-icon">📋</span>
+                  <span class="copy-toast" id="copy-code-toast" style="display:none;">Copied!</span>
+                </div>
               </div>
               <button type="button" class="richup-top-btn btn-back-lobby" id="btn-back-top" title="Return to Main Menu">← BACK</button>
             </div>
@@ -267,6 +281,37 @@
                     <input type="hidden" id="setting-even-build" value="false">
                   </div>
 
+                  <!-- Advanced Shops (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">ADVANCED SHOPS</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-advanced-shops" data-setting="setting-advanced-shops" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-advanced-shops" value="true">
+                  </div>
+
+                  <!-- Random Events (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">RANDOM EVENTS</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-random-events" data-setting="setting-random-events" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-random-events" value="true">
+                  </div>
+
+                  <!-- Board Map Selection -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">MAP</div>
+                    <div class="richup-segmented-pill" id="segmented-map">
+                      <button type="button" class="seg-opt active" data-val="standard">Standard</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt" data-val="extended">Extended</button>
+                    </div>
+                    <input type="hidden" id="setting-map" value="standard">
+                  </div>
+
                   <!-- Room Visibility -->
                   <div class="setup-toggle-card">
                     <div class="setup-toggle-label">ROOM VISIBILITY</div>
@@ -311,8 +356,7 @@
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
     <!-- Screen 2: Game Board View -->
     <section class="screen" id="game-screen">
@@ -326,6 +370,9 @@
             <div class="center-watermark">
               <span class="big-logo">RICHUP</span>
             </div>
+
+            <!-- Active Market Random Event Banner -->
+            <div id="active-event-container" style="display:none; width: 100%; z-index: 10;"></div>
 
             <div class="center-top-bar">
               <div class="turn-pill" id="center-turn-pill">
@@ -379,6 +426,12 @@
                   <span>💀 Declare Bankruptcy</span>
                 </button>
               </div>
+            </div>
+
+            <!-- Floating Notification Box below the End Turn / Action area -->
+            <div class="richup-card-popup" id="richup-card-popup" style="display:none;">
+              <button class="card-popup-close" id="btn-card-popup-close" onclick="game.closeCardPopup()" title="Close">&times;</button>
+              <div class="card-popup-text" id="card-popup-text">Tax refund. Collect $100.</div>
             </div>
 
             <div></div>
@@ -662,8 +715,8 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="/js/audio.js"></script>
-  <script src="/js/game.js?v=20261120_7"></script>
+  <script src="/js/audio.js?v=20261121_5"></script>
+  <script src="/js/game.js?v=20261121_5"></script>
 </body>
 
 </html>

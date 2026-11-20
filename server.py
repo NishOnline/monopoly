@@ -16,7 +16,7 @@ from aiohttp import web, WSMsgType
 
 from game.engine import GameRoom, AVATARS, COLORS
 from game.bot_ai import BotAI, BOT_NAMES
-from game.board_data import BOARD_TILES, COLOR_GROUPS
+from game.board_data import BOARD_TILES, COLOR_GROUPS, MAPS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -335,6 +335,32 @@ async def handle_ws(request):
                                 "message": res.reason or "You cannot sell a house from this property."
                             }))
 
+                elif action == "BUILD_SHOP":
+                    if room.state == "PLAYING":
+                        tile_id = int(data.get("tileId", -1))
+                        res = room.build_shop(current_player_id, tile_id)
+                        if res:
+                            await broadcast_room(current_room_id)
+                        else:
+                            await ws.send_str(json.dumps({
+                                "type": "ACTION_ERROR",
+                                "title": "Cannot Build Shop",
+                                "message": res.reason or "You cannot build a shop on this property."
+                            }))
+
+                elif action == "SELL_SHOP":
+                    if room.state == "PLAYING":
+                        tile_id = int(data.get("tileId", -1))
+                        res = room.sell_shop(current_player_id, tile_id)
+                        if res:
+                            await broadcast_room(current_room_id)
+                        else:
+                            await ws.send_str(json.dumps({
+                                "type": "ACTION_ERROR",
+                                "title": "Cannot Sell Shop",
+                                "message": res.reason or "You cannot sell a shop from this property."
+                            }))
+
                 elif action == "MORTGAGE":
                     if room.state == "PLAYING":
                         tile_id = int(data.get("tileId", -1))
@@ -422,8 +448,8 @@ async def handle_ws(request):
                 elif action == "RESTART_GAME":
                     if current_player_id == room.host_id and (room.state == "GAME_OVER" or room.state == "PLAYING"):
                         room.state = "LOBBY"
-                        for tile in BOARD_TILES:
-                            room.tile_states[tile["id"]] = {"owner": None, "houses": 0, "mortgaged": False}
+                        for tile in room.board_tiles:
+                            room.tile_states[tile["id"]] = {"owner": None, "houses": 0, "shops": 0, "mortgaged": False}
                         room.turn_phase = "WAITING_ROLL"
                         room.last_dice = [1, 1]
                         room.consecutive_doubles = 0
@@ -597,9 +623,15 @@ async def api_board_info(request):
     import importlib
     import game.board_data as bd
     importlib.reload(bd)
+    map_name = request.query.get("map", "standard").lower()
+    if map_name not in bd.MAPS:
+        map_name = "standard"
+    cfg = bd.MAPS[map_name]
     return web.json_response({
-        "tiles": bd.BOARD_TILES,
-        "color_groups": bd.COLOR_GROUPS
+        "map": map_name,
+        "maps": bd.MAPS,
+        "tiles": cfg["tiles"],
+        "color_groups": cfg["color_groups"]
     }, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 

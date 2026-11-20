@@ -3,31 +3,77 @@
  * Complete client-side state manager, animations, board renderer & WebSockets controller
  */
 
-// Crisp Circular SVG Flag Badges (Matching Richup.io exact tile design)
+// Crisp Circular SVG Flag & Symbol Badges (Matching Richup.io exact tile design)
 const CIRCULAR_FLAGS = {
-  IT: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#f8fafc"/><path d="M0,0 H10.67 V32 H0 Z" fill="#009246"/><path d="M21.33,0 H32 V32 H21.33 Z" fill="#ce2b37"/></svg>`,
-  HU: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H32 V10.67 H0 Z" fill="#ce2939"/><path d="M0,21.33 H32 V32 H0 Z" fill="#477050"/></svg>`,
-  GR: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#0d5eaf"/><path d="M0,6 H32 M0,13 H32 M0,19 H32 M0,26 H32" stroke="#ffffff" stroke-width="3"/><rect x="0" y="0" width="15" height="15" fill="#0d5eaf"/><path d="M7.5,0 V15 M0,7.5 H15" stroke="#ffffff" stroke-width="3"/></svg>`,
-  PL: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,16 H32 V32 H0 Z" fill="#dc143c"/></svg>`,
-  CZ: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,16 H32 V32 H0 Z" fill="#d7141a"/><polygon points="0,0 17,16 0,32" fill="#11457e"/></svg>`,
-  BE: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#fdd116"/><path d="M0,0 H10.67 V32 H0 Z" fill="#000000"/><path d="M21.33,0 H32 V32 H21.33 Z" fill="#ef3340"/></svg>`,
-  NL: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H32 V10.67 H0 Z" fill="#ae1c28"/><path d="M0,21.33 H32 V32 H0 Z" fill="#21468b"/></svg>`,
+  BR: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#009c3b"/><polygon points="16,4 28,16 16,28 4,16" fill="#ffdf00"/><circle cx="16" cy="16" r="7" fill="#002776"/><path d="M10,17 C12,14 20,14 22,18" stroke="#ffffff" stroke-width="1.4" fill="none"/></svg>`,
+  IL: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><rect x="0" y="4" width="32" height="4.5" fill="#0038b8"/><rect x="0" y="23.5" width="32" height="4.5" fill="#0038b8"/><polygon points="16,10.5 20.5,18.5 11.5,18.5" fill="none" stroke="#0038b8" stroke-width="1.3"/><polygon points="16,21 20.5,13 11.5,13" fill="none" stroke="#0038b8" stroke-width="1.3"/></svg>`,
+  IT: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H10.67 V32 H0 Z" fill="#009246"/><path d="M21.33,0 H32 V32 H21.33 Z" fill="#ce2b37"/></svg>`,
   DE: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffce00"/><path d="M0,0 H32 V10.67 H0 Z" fill="#000000"/><path d="M0,10.67 H32 V21.33 H0 Z" fill="#dd0000"/></svg>`,
-  ES: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffc400"/><path d="M0,0 H32 V8 H0 Z" fill="#aa151b"/><path d="M0,24 H32 V32 H0 Z" fill="#aa151b"/></svg>`,
+  CN: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#de2910"/><polygon points="8,7 9.2,10.7 13.1,10.7 10,13 11.2,16.7 8,14.4 4.8,16.7 6,13 2.9,10.7 6.8,10.7" fill="#ffde00"/><circle cx="17" cy="6" r="1.2" fill="#ffde00"/><circle cx="20" cy="9" r="1.2" fill="#ffde00"/><circle cx="20" cy="14" r="1.2" fill="#ffde00"/><circle cx="17" cy="17" r="1.2" fill="#ffde00"/></svg>`,
+  FR: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H10.67 V32 H0 Z" fill="#002654"/><path d="M21.33,0 H32 V32 H21.33 Z" fill="#ce1126"/></svg>`,
   GB: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#012169"/><path d="M0,0 L32,32 M32,0 L0,32" stroke="#ffffff" stroke-width="5.5"/><path d="M0,0 L32,32 M32,0 L0,32" stroke="#c8102e" stroke-width="2.5"/><path d="M16,0 V32 M0,16 H32" stroke="#ffffff" stroke-width="9"/><path d="M16,0 V32 M0,16 H32" stroke="#c8102e" stroke-width="5.5"/></svg>`,
-  AU: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#00008b"/><rect x="0" y="0" width="16" height="16" fill="#012169"/><path d="M0,0 L16,16 M16,0 L0,16" stroke="#ffffff" stroke-width="3"/><path d="M8,0 V16 M0,8 H16" stroke="#c8102e" stroke-width="2"/><circle cx="24" cy="7" r="1.5" fill="#ffffff"/><circle cx="26" cy="16" r="1.5" fill="#ffffff"/><circle cx="21" cy="22" r="1.5" fill="#ffffff"/><circle cx="8" cy="23" r="2.5" fill="#ffffff"/></svg>`,
-  CA: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H8 V32 H0 Z M24,0 H32 V32 H24 Z" fill="#ff0000"/><path d="M16,8 L18,13 L21,11 L19,16 L21,19 L16,17 L11,19 L13,16 L11,11 L14,13 Z" fill="#ff0000"/></svg>`,
-  US: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,4 H32 M0,9 H32 M0,14 H32 M0,19 H32 M0,24 H32 M0,29 H32" stroke="#b22234" stroke-width="2.5"/><rect x="0" y="0" width="16" height="16" fill="#3c3b6e"/><circle cx="4" cy="4" r="1" fill="#fff"/><circle cx="9" cy="8" r="1" fill="#fff"/><circle cx="13" cy="4" r="1" fill="#fff"/><circle cx="4" cy="12" r="1" fill="#fff"/><circle cx="12" cy="12" r="1" fill="#fff"/></svg>`,
-  IN: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H32 V10.67 H0 Z" fill="#ff9933"/><path d="M0,21.33 H32 V32 H0 Z" fill="#138808"/><circle cx="16" cy="16" r="3.5" fill="none" stroke="#000080" stroke-width="0.8"/><circle cx="16" cy="16" r="0.8" fill="#000080"/></svg>`,
-  TR: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#334155"/><text x="16" y="21" font-size="15" text-anchor="middle">🚂</text></svg>`,
-  UT: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#581c87"/><text x="16" y="21" font-size="15" text-anchor="middle">⚡</text></svg>`,
-  CHEST: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#1e3a8a"/><text x="16" y="21" font-size="14" text-anchor="middle">🎁</text></svg>`,
-  CHANCE: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#b45309"/><text x="16" y="22" font-size="16" font-weight="900" text-anchor="middle" fill="#fff">?</text></svg>`,
-  TAX: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#7f1d1d"/><text x="16" y="21" font-size="14" text-anchor="middle">💰</text></svg>`
+  US: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,4 H32 M0,9 H32 M0,14 H32 M0,19 H32 M0,24 H32 M0,29 H32" stroke="#b22234" stroke-width="2.5"/><rect x="0" y="0" width="16" height="16" fill="#3c3b6e"/><circle cx="4" cy="4" r="1.2" fill="#fff"/><circle cx="11" cy="4" r="1.2" fill="#fff"/><circle cx="7.5" cy="8" r="1.2" fill="#fff"/><circle cx="4" cy="12" r="1.2" fill="#fff"/><circle cx="11" cy="12" r="1.2" fill="#fff"/></svg>`,
+  IN: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path d="M0,0 H32 V10.67 H0 Z" fill="#ff9933"/><path d="M0,21.33 H32 V32 H0 Z" fill="#138808"/><circle cx="16" cy="16" r="4" fill="none" stroke="#000080" stroke-width="1"/><circle cx="16" cy="16" r="1.2" fill="#000080"/></svg>`,
+  JP: `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#ffffff"/><circle cx="16" cy="16" r="7.5" fill="#bc002d"/></svg>`,
+  GAS: `<svg viewBox="0 0 32 32" class="flag-circle-svg gas-icon-svg"><circle cx="16" cy="16" r="16" fill="#ea580c"/><path d="M16,5 C16,5 23,13 23,19 C23,24 19.5,27 16,27 C12.5,27 9,24 9,19 C9,13 16,5 16,5 Z" fill="#fde047"/><path d="M16,13 C16,13 20,18 20,21 C20,23.5 18,25.5 16,25.5 C14,25.5 12,23.5 12,21 C12,18 16,13 16,13 Z" fill="#f97316"/></svg>`,
+  AIRPORT: `<svg viewBox="0 0 32 32" class="flag-circle-svg airport-icon-svg"><circle cx="16" cy="16" r="16" fill="#1e293b"/><path d="M16,5 L19,13 L28,17 L28,19.5 L19,17.5 L19,23.5 L21.5,25.5 L21.5,27.5 L16,26 L10.5,27.5 L10.5,25.5 L13,23.5 L13,17.5 L4,19.5 L4,17 L13,13 Z" fill="#94a3b8"/></svg>`,
+  WATER: `<svg viewBox="0 0 32 32" class="flag-circle-svg water-icon-svg"><circle cx="16" cy="16" r="16" fill="#0891b2"/><path d="M11,11 H19 V15 H15 V20 H11 Z" fill="#ffffff"/><rect x="8" y="9" width="14" height="4" rx="2" fill="#e0f2fe"/><circle cx="17" cy="24" r="2.5" fill="#ffffff"/></svg>`,
+  POWER: `<svg viewBox="0 0 32 32" class="flag-circle-svg power-icon-svg"><circle cx="16" cy="16" r="16" fill="#1e1b4b"/><polygon points="17,3 8,16 15,16 13,29 23,14 17,14" fill="#facc15" filter="drop-shadow(0 0 4px #facc15)"/></svg>`,
+  CHEST: `<svg viewBox="0 0 36 36" class="flag-circle-svg treasure-chest-svg"><rect x="4" y="13" width="28" height="17" rx="3" fill="#b45309"/><path d="M4,13 C4,8 10,5 18,5 C26,5 32,8 32,13 Z" fill="#d97706"/><rect x="3" y="12" width="30" height="4" rx="2" fill="#78350f"/><rect x="15" y="13" width="6" height="7" rx="2" fill="#fef08a" stroke="#ca8a04" stroke-width="1.2"/><circle cx="18" cy="16.5" r="1.3" fill="#78350f"/><rect x="8" y="13" width="3" height="17" fill="#ca8a04"/><rect x="25" y="13" width="3" height="17" fill="#ca8a04"/></svg>`,
+  CHANCE: `<svg viewBox="0 0 36 36" class="flag-circle-svg surprise-icon-svg"><text x="18" y="27" font-family="'Outfit', sans-serif" font-size="28" font-weight="900" text-anchor="middle" fill="#ec4899" filter="drop-shadow(0 0 5px #ec4899)">?</text></svg>`,
+  TAX: `<svg viewBox="0 0 32 32" class="flag-circle-svg tax-icon-svg"><rect x="6" y="5" width="20" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.5"/><text x="16" y="15" font-family="'Outfit', sans-serif" font-size="9" font-weight="800" text-anchor="middle" fill="#94a3b8">$</text><text x="16" y="23" font-family="'Outfit', sans-serif" font-size="8" font-weight="800" text-anchor="middle" fill="#38bdf8">%10</text></svg>`,
+  PREMIUM_TAX: `<svg viewBox="0 0 32 32" class="flag-circle-svg tax-icon-svg"><circle cx="16" cy="16" r="16" fill="#1e1b4b"/><polygon points="16,6 23,13 16,24 9,13" fill="#38bdf8" stroke="#93c5fd" stroke-width="1.2"/><text x="16" y="29" font-family="'Outfit', sans-serif" font-size="6.5" font-weight="800" text-anchor="middle" fill="#ffffff">$75</text></svg>`
 };
 
 function getCircularFlagSvg(code) {
   return CIRCULAR_FLAGS[code] || `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#3b82f6"/><text x="16" y="21" font-size="14" text-anchor="middle" fill="#fff">🌐</text></svg>`;
+}
+
+function getCartoonJailSvg() {
+  return `<svg viewBox="0 0 64 64" class="cartoon-jail-svg">
+    <rect x="6" y="4" width="52" height="56" rx="4" fill="#0f172a" stroke="#475569" stroke-width="2.5"/>
+    <line x1="16" y1="4" x2="16" y2="60" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
+    <line x1="27" y1="4" x2="27" y2="60" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
+    <line x1="37" y1="4" x2="37" y2="60" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
+    <line x1="48" y1="4" x2="48" y2="60" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
+    <line x1="6" y1="20" x2="58" y2="20" stroke="#64748b" stroke-width="3"/>
+    <line x1="6" y1="46" x2="58" y2="46" stroke="#64748b" stroke-width="3"/>
+    <rect x="26" y="31" width="12" height="10" rx="2" fill="#f59e0b" stroke="#b45309" stroke-width="1.2"/>
+    <path d="M29,31 V27 C29,25 35,25 35,27 V31" fill="none" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="32" cy="36" r="1.2" fill="#78350f"/>
+  </svg>`;
+}
+
+function getCartoonSkullSvg() {
+  return `<svg viewBox="0 0 64 64" class="cartoon-skull-svg">
+    <path d="M15,15 L49,49 M49,15 L15,49" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="13" cy="13" r="3" fill="#ffffff"/><circle cx="17" cy="11" r="3" fill="#ffffff"/>
+    <circle cx="47" cy="11" r="3" fill="#ffffff"/><circle cx="51" cy="13" r="3" fill="#ffffff"/>
+    <circle cx="13" cy="51" r="3" fill="#ffffff"/><circle cx="17" cy="53" r="3" fill="#ffffff"/>
+    <circle cx="47" cy="53" r="3" fill="#ffffff"/><circle cx="51" cy="51" r="3" fill="#ffffff"/>
+    <path d="M21,32 C21,18 43,18 43,32 C43,37 39,40 39,44 L25,44 C25,40 21,37 21,32 Z" fill="#ffffff"/>
+    <ellipse cx="27" cy="30" rx="3.5" ry="4" fill="#0f172a"/>
+    <ellipse cx="37" cy="30" rx="3.5" ry="4" fill="#0f172a"/>
+    <polygon points="32,34 30.5,37 33.5,37" fill="#0f172a"/>
+    <line x1="29" y1="44" x2="29" y2="41" stroke="#0f172a" stroke-width="1.5"/>
+    <line x1="32" y1="44" x2="32" y2="41" stroke="#0f172a" stroke-width="1.5"/>
+    <line x1="35" y1="44" x2="35" y2="41" stroke="#0f172a" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function getVacationSvg() {
+  return `<svg viewBox="0 0 64 64" class="cartoon-vacation-svg">
+    <ellipse cx="32" cy="48" rx="20" ry="7" fill="#facc15"/>
+    <path d="M6,52 Q18,48 30,52 T54,52" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M12,56 Q24,53 36,56 T60,56" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round"/>
+    <path d="M30,48 C28,36 32,24 35,16" fill="none" stroke="#b45309" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M35,16 Q20,10 12,20" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M35,16 Q26,4 32,2" fill="none" stroke="#16a34a" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M35,16 Q45,6 52,14" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M35,16 Q48,20 46,30" fill="none" stroke="#15803d" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="33" cy="18" r="2.5" fill="#78350f"/>
+    <circle cx="37" cy="19" r="2.5" fill="#78350f"/>
+  </svg>`;
 }
 
 class RichupGame {
@@ -113,7 +159,7 @@ class RichupGame {
       });
     }
 
-    // Lobby tabs (Create / Join)
+    // Lobby tabs (Create / Join / Public Rooms)
     document.querySelectorAll('.lobby-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.lobby-tab').forEach(t => t.classList.remove('active'));
@@ -122,6 +168,9 @@ class RichupGame {
         const targetId = tab.getAttribute('data-target');
         const target = document.getElementById(targetId);
         if (target) target.classList.add('active');
+        if (targetId === 'tab-public') {
+          this.fetchPublicRooms();
+        }
       });
     });
 
@@ -325,6 +374,19 @@ class RichupGame {
       });
     });
 
+    // 4b. Map Segmented Pill (Standard / Extended)
+    const segMapButtons = document.querySelectorAll('#segmented-map .seg-opt');
+    segMapButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!this.isHost) return;
+        segMapButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const hiddenMap = document.getElementById('setting-map');
+        if (hiddenMap) hiddenMap.value = btn.getAttribute('data-val');
+        this.applySettings();
+      });
+    });
+
     // 5. Back Buttons in Setup Menu & Logo Return to Main Menu
     const handleReturnToMain = () => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId) {
@@ -395,6 +457,10 @@ class RichupGame {
     const endTurnBtn = document.getElementById('btn-action-end');
     if (endTurnBtn) {
       endTurnBtn.addEventListener('click', () => {
+        if (this.animatingTokens && Object.keys(this.animatingTokens).length > 0) {
+          this.showToast('⏳ Wait until movement finishes before ending turn.');
+          return;
+        }
         if (this.gameState && this.gameState.players) {
           const me = this.gameState.players.find(p => p.id === this.playerId);
           if (me && me.cash < 0) {
@@ -586,41 +652,63 @@ class RichupGame {
     }
   }
 
-  async fetchBoardData() {
+  async fetchBoardData(preferredMap = null) {
     try {
-      const res = await fetch('/api/board?t=' + Date.now(), { cache: 'no-store' });
-      this.boardData = await res.json();
+      const mapName = preferredMap || (this.gameState && this.gameState.settings && this.gameState.settings.map) || 'standard';
+      const res = await fetch('/api/board?map=' + encodeURIComponent(mapName) + '&t=' + Date.now(), { cache: 'no-store' });
+      const data = await res.json();
+      this.mapsData = data.maps || null;
+      this.boardData = data;
     } catch (e) {
       console.error('Failed to load board data', e);
     }
   }
 
+  async fetchPublicRooms() {
+    await this.fetchOpenRooms();
+  }
+
+  copyRoomCode() {
+    const code = this.roomId;
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+    const toast = document.getElementById('copy-code-toast');
+    if (toast) {
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 1500);
+    }
+  }
+
   async fetchOpenRooms() {
     try {
-      const res = await fetch('/api/rooms');
+      const res = await fetch('/api/rooms?t=' + Date.now());
       const data = await res.json();
       const listEl = document.getElementById('public-rooms-list');
       if (!listEl) return;
       if (!data.rooms || data.rooms.length === 0) {
-        listEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.85rem;padding:8px;">No open public games right now. Create one!</div>';
+        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:20px;text-align:center;">No open public games right now.<br>Create a game and set Room Visibility to 🌐 Public!</div>';
         return;
       }
       listEl.innerHTML = data.rooms.map(r => {
         const isPlaying = r.state === 'PLAYING';
         return `
-          <div class="lobby-player-card" style="flex-direction:row;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 12px;" onclick="game.quickJoin('${r.roomId}')">
-            <div>
-              <span style="font-weight:800;color:#38bdf8;font-family:monospace;font-size:0.95rem;">${r.roomId}</span>
-              <span style="font-size:0.8rem;color:var(--text-muted);margin-left:8px;">Host: ${r.hostName}</span>
+          <div class="public-room-card">
+            <div class="public-room-info">
+              <div class="public-room-code-line">
+                <span class="public-room-code">${r.roomId}</span>
+                <span class="public-room-badge ${isPlaying ? 'badge-playing' : 'badge-lobby'}">
+                  ${isPlaying ? '👁️ LIVE' : 'Waiting in Lobby'}
+                </span>
+              </div>
+              <div class="public-room-meta">
+                Host: <strong>${r.hostName}</strong> • Players: <strong>${r.playersCount}/${r.maxPlayers}</strong>
+              </div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="lobby-player-tag ${isPlaying ? 'bot' : ''}">
-                ${isPlaying ? '👁️ LIVE' : `${r.playersCount}/${r.maxPlayers}`}
-              </span>
-              <button class="mini-trade-btn" style="${isPlaying ? 'background:rgba(139,92,246,0.25);color:#c084fc;border-color:rgba(139,92,246,0.5);' : ''}">
-                ${isPlaying ? '👁️ Spectate' : 'Join'}
-              </button>
-            </div>
+            <button class="btn-join-public" onclick="game.quickJoin('${r.roomId}')">
+              ${isPlaying ? '👁️ Spectate' : 'Join Game'}
+            </button>
           </div>
         `;
       }).join('');
@@ -728,7 +816,7 @@ class RichupGame {
         }
       }
 
-      // 2. Auction timer: ends 3 seconds after players hold their final bet
+      // 2. Auction timer: countdown timer with smooth display
       if (state.turn_phase === 'AUCTION' && state.auction) {
         const auc = state.auction;
         const aucTimer = document.getElementById('auction-timer-pill');
@@ -740,15 +828,15 @@ class RichupGame {
           const txt = displaySecs > 0 ? `⏱️ Ending in <strong>${displaySecs}s</strong>` : `🔨 Concluding...`;
           if (aucTimer) {
             aucTimer.innerHTML = txt;
-            aucTimer.classList.add('urgent');
+            aucTimer.classList.toggle('urgent', displaySecs <= 2 && displaySecs > 0);
           }
           if (sbAucTimer) {
             sbAucTimer.innerHTML = txt;
-            sbAucTimer.style.color = '#ef4444';
+            sbAucTimer.style.color = displaySecs <= 2 ? '#ef4444' : '#fbbf24';
             sbAucTimer.style.fontWeight = 'bold';
           }
         } else {
-          const defaultTxt = `⚖️ Place your bet • 3s timer starts on first bet`;
+          const defaultTxt = `⚖️ Place your bet (15s to place bid)`;
           if (aucTimer) {
             aucTimer.innerHTML = defaultTxt;
             aucTimer.classList.remove('urgent');
@@ -834,15 +922,26 @@ class RichupGame {
   }
 
   showLobbyRoomView() {
+    const lobbyScreen = document.getElementById('lobby-screen');
+    if (lobbyScreen) lobbyScreen.style.display = 'none';
     const welcomeBox = document.getElementById('lobby-welcome-box');
     if (welcomeBox) welcomeBox.style.display = 'none';
     const welcomeView = document.getElementById('lobby-welcome-view');
     if (welcomeView) welcomeView.style.display = 'none';
     const roomView = document.getElementById('room-lobby-view');
-    if (roomView) roomView.style.display = 'block';
+    if (roomView) {
+      roomView.style.display = 'flex';
+      roomView.style.flexDirection = 'column';
+      roomView.style.alignItems = 'center';
+      roomView.style.justifyContent = 'center';
+      roomView.style.width = '100%';
+    }
 
     const topNav = document.querySelector('.top-nav');
     if (topNav) topNav.style.display = 'none';
+
+    const codeValEl = document.getElementById('setup-room-code-val');
+    if (codeValEl) codeValEl.innerText = this.roomId || '----';
   }
 
   resetToMainMenu() {
@@ -856,6 +955,8 @@ class RichupGame {
     if (specPill) specPill.style.display = 'none';
     document.getElementById('screen-welcome').classList.add('active');
     document.getElementById('game-screen').classList.remove('active');
+    const lobbyScreen = document.getElementById('lobby-screen');
+    if (lobbyScreen) lobbyScreen.style.display = 'flex';
     const welcomeBox = document.getElementById('lobby-welcome-box');
     if (welcomeBox) welcomeBox.style.display = 'flex';
     const welcomeView = document.getElementById('lobby-welcome-view');
@@ -902,6 +1003,16 @@ class RichupGame {
     });
   }
 
+  syncMapSegmented(mapVal) {
+    const hidden = document.getElementById('setting-map');
+    if (hidden) hidden.value = mapVal;
+    const btns = document.querySelectorAll('#segmented-map .seg-opt');
+    btns.forEach(b => {
+      const val = b.getAttribute('data-val');
+      b.classList.toggle('active', val === mapVal);
+    });
+  }
+
   applySettings() {
     if (!this.isHost) return;
     const startingCash = parseInt(document.getElementById('setting-cash').value, 10);
@@ -912,6 +1023,10 @@ class RichupGame {
     const prisonRent = document.getElementById('setting-prison-rent') ? document.getElementById('setting-prison-rent').value === 'true' : true;
     const evenBuild = document.getElementById('setting-even-build') ? document.getElementById('setting-even-build').value === 'true' : false;
     const mortgage = document.getElementById('setting-mortgage') ? document.getElementById('setting-mortgage').value === 'true' : true;
+    const advancedShops = document.getElementById('setting-advanced-shops') ? document.getElementById('setting-advanced-shops').value === 'true' : true;
+    const randomEvents = document.getElementById('setting-random-events') ? document.getElementById('setting-random-events').value === 'true' : true;
+    const mapEl = document.getElementById('setting-map');
+    const mapVal = mapEl ? mapEl.value : 'standard';
     const privacyEl = document.getElementById('setting-privacy');
     const isPublic = privacyEl ? privacyEl.value === 'true' : false;
 
@@ -926,6 +1041,9 @@ class RichupGame {
         no_rent_in_prison: prisonRent,
         even_build: evenBuild,
         mortgage_enabled: mortgage,
+        advanced_shops: advancedShops,
+        random_events: randomEvents,
+        map: mapVal,
         is_public: isPublic
       }
     });
@@ -978,11 +1096,22 @@ class RichupGame {
       this.syncPillToggle('toggle-prison-rent', 'setting-prison-rent', data.settings.no_rent_in_prison !== false, 'gold');
       this.syncPillToggle('toggle-mortgage', 'setting-mortgage', data.settings.mortgage_enabled !== false, 'gold');
       this.syncPillToggle('toggle-even-build', 'setting-even-build', data.settings.even_build === true, 'gold');
+      this.syncPillToggle('toggle-advanced-shops', 'setting-advanced-shops', data.settings.advanced_shops !== false, 'gold');
+      this.syncPillToggle('toggle-random-events', 'setting-random-events', data.settings.random_events !== false, 'gold');
       this.syncPrivacySegmented(Boolean(data.settings.is_public));
+
+      const currentMap = data.settings.map || 'standard';
+      this.syncMapSegmented(currentMap);
+      if (this.mapsData && this.mapsData[currentMap] && (!this.boardData || this.boardData.map !== currentMap)) {
+        this.boardData = { ...this.mapsData[currentMap], map: currentMap, maps: this.mapsData };
+        this.renderBoardSkeleton();
+        this.renderBoardProperties();
+        this.renderAllPlayerTokens();
+      }
 
       // Disable inputs for non-host players, enable for host
       const isHost = this.isHost;
-      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt').forEach(el => {
+      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt, #segmented-map .seg-opt').forEach(el => {
         el.style.pointerEvents = isHost ? 'auto' : 'none';
         el.style.opacity = isHost ? '1' : '0.65';
       });
@@ -1030,10 +1159,18 @@ class RichupGame {
     }
 
     // Play sounds and animations on state changes (jackpot, monopolies, cash delta)
-    this.handleSoundAndFX(prevState, data);
+    try {
+      this.handleSoundAndFX(prevState, data);
+    } catch (e) {
+      console.error('Error in handleSoundAndFX:', e);
+    }
 
     // Render Board Tiles (owners, houses, mortgages)
-    this.renderTileStates();
+    try {
+      this.renderTileStates();
+    } catch (e) {
+      console.error('Error in renderTileStates:', e);
+    }
 
     // Check if new dice roll occurred in this state update
     const diceChanged = data.last_dice && (!prevState || !prevState.last_dice || prevState.last_dice[0] !== data.last_dice[0] || prevState.last_dice[1] !== data.last_dice[1]);
@@ -1045,24 +1182,36 @@ class RichupGame {
       const d1 = data.last_dice[0];
       const d2 = data.last_dice[1];
       this.triggerDiceAnimation(d1, d2, () => {
-        this.renderPlayerTokens();
-        this.renderCenterDeck();
+        try { this.renderPlayerTokens(); } catch (e) { console.error('Error in renderPlayerTokens:', e); }
+        try { this.renderCenterDeck(); } catch (e) { console.error('Error in renderCenterDeck:', e); }
       });
     } else {
       // Normal state update: render tokens and center deck immediately
-      this.renderPlayerTokens();
-      this.renderCenterDeck();
+      try { this.renderPlayerTokens(); } catch (e) { console.error('Error in renderPlayerTokens:', e); }
+      try { this.renderCenterDeck(); } catch (e) { console.error('Error in renderCenterDeck:', e); }
     }
 
     // Render Sidebar (Players and Activity Feed)
-    this.renderSidebar();
+    try {
+      this.renderSidebar();
+    } catch (e) {
+      console.error('Error in renderSidebar:', e);
+    }
 
     // Render Active Auction if present
-    this.renderAuction();
+    try {
+      this.renderAuction();
+    } catch (e) {
+      console.error('Error in renderAuction:', e);
+    }
 
     // Check for incoming trades (only for active non-spectators)
     if (!this.isSpectator && myPlayer && !myPlayer.is_bankrupt) {
-      this.checkIncomingTrades();
+      try {
+        this.checkIncomingTrades();
+      } catch (e) {
+        console.error('Error in checkIncomingTrades:', e);
+      }
     }
   }
 
@@ -1083,12 +1232,87 @@ class RichupGame {
       });
     }
 
-    // 3. Jackpot change sound
+    // 3. Activity feed logs tracking (Rent, Cards, Jackpots)
+    if (!this._seenLogIds) {
+      this._seenLogIds = new Set((curr.logs || []).map(l => l.id));
+    }
+    const newLogs = (curr.logs || []).filter(l => !this._seenLogIds.has(l.id));
+    newLogs.forEach(l => this._seenLogIds.add(l.id));
+
+    // Rent paid sound effect
+    const rentLog = newLogs.find(l => 
+      l.category === 'rent' || 
+      (l.text && (l.text.includes('rent') || l.text.includes('owes $')))
+    );
+    if (rentLog && window.soundEngine && typeof window.soundEngine.rentPaid === 'function') {
+      window.soundEngine.rentPaid();
+    }
+
+    // Vacation jackpot popup box
+    const jackpotLog = newLogs.find(l => 
+      l.category === 'vacation' || 
+      l.category === 'jackpot' || 
+      (l.text && (l.text.includes('Vacation jackpot') || l.text.includes('free parking')))
+    );
+    if (jackpotLog) {
+      this.showCardPopup(jackpotLog.text, 'vacation');
+      if (window.soundEngine && typeof window.soundEngine.jackpot === 'function') {
+        window.soundEngine.jackpot();
+      }
+    }
+
+    // 4. Card drawn notification popup box (matching Richup.io user screenshot)
+    let cardShown = false;
+    if (curr.last_card && (!prev.last_card || prev.last_card.id !== curr.last_card.id || prev.last_card.desc !== curr.last_card.desc)) {
+      const cardType = curr.last_card.type === 'chance' ? 'surprise' : 'treasure';
+      const cardText = curr.last_card.desc || curr.last_card.title;
+      this.showCardPopup(cardText, cardType);
+      cardShown = true;
+      if (window.soundEngine && typeof window.soundEngine.cardEffect === 'function') {
+        window.soundEngine.cardEffect();
+      }
+    }
+
+    // Fallback: Check newLogs for card draw events
+    if (!cardShown) {
+      const cardLog = newLogs.find(l => 
+        l.category === 'card' || 
+        (l.text && (l.text.includes('drew ') || l.text.includes('Surprise:') || l.text.includes('Treasure:')))
+      );
+      if (cardLog) {
+        let cardText = cardLog.text;
+        if (cardText.includes(': ')) {
+          cardText = cardText.substring(cardText.indexOf(': ') + 2);
+        }
+        const isSurprise = cardLog.text.toLowerCase().includes('surprise') || cardLog.text.toLowerCase().includes('chance');
+        this.showCardPopup(cardText, isSurprise ? 'surprise' : 'treasure');
+        if (window.soundEngine && typeof window.soundEngine.cardEffect === 'function') {
+          window.soundEngine.cardEffect();
+        }
+      }
+    }
+
+    // 5. Newly acquired property sound effect
+    if (curr.tile_states && prev.tile_states) {
+      let anyBought = false;
+      Object.keys(curr.tile_states).forEach(tid => {
+        const cState = curr.tile_states[tid];
+        const pState = prev.tile_states[tid];
+        if (cState && cState.owner && (!pState || !pState.owner)) {
+          anyBought = true;
+        }
+      });
+      if (anyBought && window.soundEngine && typeof window.soundEngine.propertyBought === 'function') {
+        window.soundEngine.propertyBought();
+      }
+    }
+
+    // 6. Jackpot change sound
     if (curr.free_parking_pool > (prev.free_parking_pool || 0)) {
       window.soundEngine.moneyGain();
     }
 
-    // 4. Flying cash delta (+/- flying text for 2 sec, deduplicated)
+    // 7. Flying cash delta (+/- flying text for 2 sec, deduplicated)
     if (curr.players) {
       curr.players.forEach(p => {
         const prevCash = this.previousCash[p.id];
@@ -1106,17 +1330,52 @@ class RichupGame {
       });
     }
 
-    // Free parking banner
+    // 8. Vacation / Free parking banner and live board tile pool
     const jpEl = document.getElementById('nav-jackpot-pill');
     const jpVal = document.getElementById('jackpot-pool-amount');
     if (jpEl && jpVal) {
       if (curr.settings.free_parking_jackpot) {
         jpEl.style.display = 'flex';
-        jpVal.innerText = `$${curr.free_parking_pool}`;
+        jpVal.innerText = `$${curr.free_parking_pool || 0}`;
       } else {
         jpEl.style.display = 'none';
       }
     }
+    const tileVacEl = document.getElementById('tile-vacation-pool');
+    if (tileVacEl) {
+      tileVacEl.innerText = `$${curr.free_parking_pool || 0}`;
+    }
+  }
+
+  showCardPopup(text, type = 'treasure', playerName = null) {
+    const popup = document.getElementById('richup-card-popup');
+    const textEl = document.getElementById('card-popup-text');
+    if (!popup || !textEl || !text) return;
+
+    let formattedText = text;
+    const pName = playerName || (this.gameState && this.gameState.players && this.gameState.players[this.gameState.current_player_idx] ? this.gameState.players[this.gameState.current_player_idx].name : '');
+    if (pName) {
+      formattedText = formattedText.replace(/^You won\b/i, `${pName} won`);
+      formattedText = formattedText.replace(/^You have won\b/i, `${pName} won`);
+      formattedText = formattedText.replace(/\byou won\b/gi, `${pName} won`);
+      formattedText = formattedText.replace(/\byour favor\b/gi, `${pName}'s favor`);
+      formattedText = formattedText.replace(/\byou get\b/gi, `${pName} receives`);
+      formattedText = formattedText.replace(/\bYou inherit\b/gi, `${pName} inherits`);
+    }
+
+    textEl.innerText = formattedText;
+    popup.className = `richup-card-popup ${type === 'surprise' ? 'popup-surprise' : (type === 'vacation' ? 'popup-vacation' : '')}`;
+    popup.style.display = 'flex';
+    if (this.cardPopupTimeout) clearTimeout(this.cardPopupTimeout);
+    this.cardPopupTimeout = setTimeout(() => {
+      this.closeCardPopup();
+    }, 4500);
+  }
+
+  closeCardPopup() {
+    const popup = document.getElementById('richup-card-popup');
+    if (popup) popup.style.display = 'none';
+    if (this.cardPopupTimeout) clearTimeout(this.cardPopupTimeout);
   }
 
   // ================= Board Skeleton & Tile Rendering (Matching User's Image 1-1) =================
@@ -1128,64 +1387,143 @@ class RichupGame {
     board.querySelectorAll('.tile').forEach(el => el.remove());
 
     const tiles = this.boardData.tiles;
+    const totalTiles = tiles.length; // 40 (standard) or 48 (extended)
+    const isExtended = totalTiles === 48;
+    board.classList.toggle('map-extended', isExtended);
+
+    const sideLen = Math.floor(totalTiles / 4); // 10 for std, 12 for ext
+    const gridSize = sideLen + 1; // 11 for std, 13 for ext
+
+    const jailId = isExtended ? 12 : 10;
+    const vacationId = isExtended ? 24 : 20;
+    const gotojailId = isExtended ? 36 : 30;
+
+    const centerEl = board.querySelector('.board-center');
+    if (centerEl) {
+      if (isExtended) {
+        centerEl.style.gridColumn = '2 / span 11';
+        centerEl.style.gridRow = '2 / span 11';
+      } else {
+        centerEl.style.gridColumn = '2 / span 9';
+        centerEl.style.gridRow = '2 / span 9';
+      }
+    }
+
     let html = '';
 
-    tiles.forEach(tile => {
+    tiles.forEach((tile, index) => {
       const id = tile.id;
       let extraClass = `tile-${id}`;
       let content = '';
 
-      if (id === 0) {
-        extraClass += ' tile-corner';
-        content = `<div class="corner-icon">🚩</div><div class="corner-name">COLLECT $200 SALARY AS YOU PASS<br><strong>GO</strong></div>`;
-      } else if (id === 10) {
-        extraClass += ' tile-corner';
-        content = `<div class="corner-icon">👮</div><div class="corner-name">JUST VISITING<br>/ IN JAIL</div>`;
-      } else if (id === 20) {
-        extraClass += ' tile-corner';
-        content = `<div class="corner-icon">🅿️</div><div class="corner-name">FREE<br>PARKING</div>`;
-      } else if (id === 30) {
-        extraClass += ' tile-corner';
-        content = `<div class="corner-icon">🚨</div><div class="corner-name">GO TO<br>JAIL</div>`;
+      // Grid position and edge orientation
+      let col = 1, row = 1;
+      let edgeClass = '';
+
+      if (index === 0) {
+        col = 1; row = 1;
+      } else if (index < sideLen) {
+        row = 1; col = 1 + index;
+        edgeClass = 'edge-top';
+      } else if (index === sideLen) {
+        col = gridSize; row = 1;
+      } else if (index < 2 * sideLen) {
+        col = gridSize; row = 1 + (index - sideLen);
+        edgeClass = 'edge-right';
+      } else if (index === 2 * sideLen) {
+        col = gridSize; row = gridSize;
+      } else if (index < 3 * sideLen) {
+        row = gridSize; col = gridSize - (index - 2 * sideLen);
+        edgeClass = 'edge-bottom';
+      } else if (index === 3 * sideLen) {
+        col = 1; row = gridSize;
       } else {
-        // Edge tiles: authentic Richup.io design matching user image!
-        if (id >= 1 && id <= 9) extraClass += ' edge-bottom';
-        else if (id >= 11 && id <= 19) extraClass += ' edge-left';
-        else if (id >= 21 && id <= 29) extraClass += ' edge-top';
-        else if (id >= 31 && id <= 39) extraClass += ' edge-right';
+        col = 1; row = gridSize - (index - 3 * sideLen);
+        edgeClass = 'edge-left';
+      }
+
+      if (id === 0) {
+        extraClass += ' tile-corner tile-corner-start';
+        content = `
+          <div class="corner-start-box">
+            <div class="start-text-glow">START</div>
+            <div class="start-arrow-badge">➜</div>
+          </div>
+        `;
+      } else if (id === jailId) {
+        extraClass += ' tile-corner tile-corner-jail';
+        content = `
+          <div class="corner-jail-box">
+            <div class="corner-jail-passing">Passing by</div>
+            <div class="corner-jail-cell">
+              ${getCartoonJailSvg()}
+              <div class="corner-jail-label">In Prison</div>
+            </div>
+          </div>
+        `;
+      } else if (id === vacationId) {
+        extraClass += ' tile-corner tile-corner-vacation';
+        const curPool = (this.gameState && this.gameState.free_parking_pool) ? this.gameState.free_parking_pool : 0;
+        content = `
+          <div class="corner-vacation-box">
+            <div class="corner-vacation-icon">${getVacationSvg()}</div>
+            <div class="corner-vacation-title">Vacation</div>
+            <div class="vacation-jackpot-pill" id="tile-vacation-pool">$${curPool}</div>
+          </div>
+        `;
+      } else if (id === gotojailId) {
+        extraClass += ' tile-corner tile-corner-gotojail';
+        content = `
+          <div class="corner-gotojail-box">
+            <div class="corner-gotojail-icon">${getCartoonSkullSvg()}</div>
+            <div class="corner-gotojail-title">Go to prison</div>
+          </div>
+        `;
+      } else {
+        extraClass += ' ' + edgeClass;
+        if (tile.country_code === 'GAS') extraClass += ' tile-special-gas';
+        else if (tile.type === 'chest') extraClass += ' tile-chest';
+        else if (tile.type === 'chance') extraClass += ' tile-chance';
+        else if (tile.type === 'railroad') extraClass += ' tile-railroad';
 
         let colorBar = '';
         if (tile.type === 'property' || tile.type === 'railroad' || tile.type === 'utility') {
-          colorBar = `<div class="color-bar" id="colorbar-tile-${id}" style="display:none;"></div>`;
+          colorBar = `<div class="color-bar" id="colorbar-tile-${id}"></div>`;
         }
 
-        const priceText = tile.price ? `${tile.price} $` : (tile.tax_amount ? `${tile.tax_amount} $` : '');
+        let priceText = '';
+        if (tile.price) {
+          priceText = `${tile.price}$`;
+        } else if (tile.tax_amount) {
+          priceText = (tile.country_code === 'TAX' || (tile.name && tile.name.toLowerCase().includes('earnings'))) ? '%10' : `${tile.tax_amount}$`;
+        }
 
         // Circular Flag / Symbol SVG Badge
         let flagCode = tile.country_code;
         if (!flagCode) {
           if (tile.type === 'chest') flagCode = 'CHEST';
           else if (tile.type === 'chance') flagCode = 'CHANCE';
-          else if (tile.type === 'tax') flagCode = 'TAX';
+          else if (tile.type === 'tax') flagCode = (tile.name && tile.name.toLowerCase().includes('premium')) ? 'PREMIUM_TAX' : 'TAX';
         }
         const flagCircle = `<div class="richup-flag-circle">${getCircularFlagSvg(flagCode)}</div>`;
 
         // Price tag in translucent rounded pill
-        const priceTag = priceText ? `<div class="richup-price-tag">${priceText}</div>` : '';
+        const priceTag = priceText ? `<div class="richup-price-tag" id="price-tag-tile-${id}">${priceText}</div>` : `<div class="richup-price-tag" id="price-tag-tile-${id}" style="display:none;"></div>`;
 
-        // City name & price tag stacked in richup-tile-info container so names fit beautifully
+        // City name
         const tileInfo = `
           <div class="richup-tile-info">
             <div class="richup-city-name" title="${tile.name}">${tile.name}</div>
-            ${priceTag}
           </div>
         `;
 
+        // Inner layout matches Richup.io screenshot
         content = `
           ${colorBar}
           <div class="house-container" id="houses-tile-${id}"></div>
-          ${flagCircle}
+          ${priceTag}
           ${tileInfo}
+          ${flagCircle}
           <div class="owner-indicator" id="owner-tile-${id}"></div>
           <div class="mortgaged-overlay" id="mortgage-tile-${id}" style="display:none;">
             <span class="mortgage-label">MORTGAGED</span>
@@ -1194,14 +1532,13 @@ class RichupGame {
       }
 
       html += `
-        <div class="tile ${extraClass}" id="tile-slot-${id}" onclick="game.inspectProperty(${id})">
+        <div class="tile ${extraClass}" id="tile-slot-${id}" style="grid-column:${col}; grid-row:${row};" onclick="game.inspectProperty(${id})">
           ${content}
           <div class="tokens-container" id="tokens-tile-${id}"></div>
         </div>
       `;
     });
 
-    const centerEl = board.querySelector('.board-center');
     if (centerEl) {
       centerEl.insertAdjacentHTML('beforebegin', html);
     } else {
@@ -1217,16 +1554,16 @@ class RichupGame {
     this.gameState.players.forEach(p => { playersById[p.id] = p; });
 
     const colorGroups = this.boardData.color_groups || {
-      brown: { color: '#92400e' },
+      brown: { color: '#7c3aed' },
       lightblue: { color: '#38bdf8' },
-      pink: { color: '#f472b6' },
-      orange: { color: '#fb923c' },
+      pink: { color: '#06b6d4' },
+      orange: { color: '#f97316' },
       red: { color: '#ef4444' },
-      yellow: { color: '#facc15' },
-      green: { color: '#22c55e' },
-      darkblue: { color: '#3b82f6' },
-      railroad: { color: '#94a3b8' },
-      utility: { color: '#fbbf24' }
+      yellow: { color: '#ec4899' },
+      green: { color: '#8b5cf6' },
+      darkblue: { color: '#2563eb' },
+      railroad: { color: '#64748b' },
+      utility: { color: '#eab308' }
     };
 
     this.boardData.tiles.forEach(tile => {
@@ -1237,30 +1574,29 @@ class RichupGame {
       const colorBar = tileSlot ? tileSlot.querySelector('.color-bar') : null;
       const ownerEl = document.getElementById(`owner-tile-${tile.id}`);
 
+      // Default Group Color for the color bar
+      const groupColor = tile.group && colorGroups[tile.group] ? colorGroups[tile.group].color : null;
+      if (colorBar && groupColor) {
+        colorBar.style.display = 'block';
+        colorBar.style.setProperty('background-color', groupColor, 'important');
+      }
+
       if (state.owner && playersById[state.owner]) {
         const owner = playersById[state.owner];
 
-        // Owned property: show ONLY the color of the person who owns it & fill inside area
-        if (colorBar) {
-          colorBar.style.display = 'block';
-          colorBar.style.setProperty('background-color', owner.color, 'important');
-          colorBar.style.boxShadow = `0 0 10px ${owner.color}`;
-        }
+        // Owned property: show owner glow around the card & tint
         if (tileSlot) {
           tileSlot.style.borderColor = owner.color;
-          tileSlot.style.background = `linear-gradient(135deg, ${owner.color}45 0%, ${owner.color}22 100%), rgba(15, 23, 42, 0.85)`;
-          tileSlot.style.boxShadow = `0 4px 16px ${owner.color}35, inset 0 0 20px ${owner.color}40`;
+          tileSlot.style.background = `linear-gradient(135deg, ${owner.color}35 0%, rgba(20, 19, 38, 0.95) 100%)`;
+          tileSlot.style.boxShadow = `0 4px 16px ${owner.color}40, inset 0 0 16px ${owner.color}25`;
         }
         if (ownerEl) {
-          ownerEl.style.display = 'none';
+          ownerEl.style.display = 'block';
+          ownerEl.style.backgroundColor = owner.color;
+          ownerEl.style.boxShadow = `0 0 8px ${owner.color}`;
         }
       } else {
-        // Unowned property: show NO color on the map. Keep only the flag.
-        if (colorBar) {
-          colorBar.style.display = 'none';
-          colorBar.style.removeProperty('background-color');
-          colorBar.style.removeProperty('box-shadow');
-        }
+        // Unowned property: keep clean rich card styling with color group bar
         if (ownerEl) {
           ownerEl.style.display = 'none';
         }
@@ -1277,15 +1613,53 @@ class RichupGame {
         mortEl.style.display = state.mortgaged ? 'flex' : 'none';
       }
 
-      // 3. Houses / Hotels
+      // 3. Authentic Richup.io House, Hotel & Shop Unified Development Badges replacing price pill
       const houseEl = document.getElementById(`houses-tile-${tile.id}`);
       if (houseEl) {
-        if (state.houses === 5) {
-          houseEl.innerHTML = '<div class="hotel-pip"></div>';
-        } else if (state.houses > 0) {
-          houseEl.innerHTML = Array(state.houses).fill('<div class="house-pip"></div>').join('');
+        houseEl.innerHTML = '';
+      }
+
+      const priceEl = document.getElementById(`price-tag-tile-${tile.id}`);
+      if (priceEl && (tile.type === 'property' || tile.type === 'railroad' || tile.type === 'utility')) {
+        if (state.owner && playersById[state.owner]) {
+          const owner = playersById[state.owner];
+          const hasHouses = Boolean(state.houses && state.houses > 0);
+          const hasShops = Boolean(state.shops && state.shops > 0);
+
+          if (hasHouses || hasShops) {
+            priceEl.style.display = 'inline-flex';
+            priceEl.className = 'richup-price-tag richup-house-badge' + (state.houses === 5 ? ' hotel-badge' : '');
+            priceEl.style.backgroundColor = owner.color;
+
+            let badgeHtml = '';
+            if (state.houses === 5) {
+              badgeHtml += `<span class="badge-segment hotel-segment" title="Hotel Built"><svg viewBox="0 0 24 24" class="hotel-svg-icon"><path fill-rule="evenodd" clip-rule="evenodd" d="M3,2 H21 V4 H20 V21 H4 V4 H3 V2 Z M6,5 H8 V7 H6 V5 Z M11,5 H13 V7 H11 V5 Z M16,5 H18 V7 H16 V5 Z M6,9 H8 V11 H6 V9 Z M11,9 H13 V11 H11 V9 Z M16,9 H18 V11 H16 V9 Z M9,21 V16 C9,14.5 10.3,13.5 12,13.5 C13.7,13.5 15,14.5 15,16 V21 H9 Z" fill="#000000"/></svg></span>`;
+            } else if (hasHouses) {
+              badgeHtml += `<span class="badge-segment house-segment" title="${state.houses} House(s)"><svg viewBox="0 0 20 20" class="house-svg-icon"><path d="M10,2 L1.5,9.5 H4.5 V18 H15.5 V9.5 H18.5 Z" fill="#000000"/></svg><span class="house-badge-multiplier">× ${state.houses}</span></span>`;
+            }
+
+            if (hasHouses && hasShops) {
+              badgeHtml += `<span class="dev-divider"></span>`;
+            }
+
+            if (hasShops) {
+              badgeHtml += `<span class="badge-segment shop-segment" title="Advanced Shop Built"><img src="/img/shop.svg" class="shop-pill-icon" alt="Shop" /></span>`;
+            }
+
+            priceEl.innerHTML = badgeHtml;
+          } else {
+            // 0 houses, 0 shops: restore original price pill
+            priceEl.className = 'richup-price-tag';
+            priceEl.style.backgroundColor = '';
+            priceEl.style.display = tile.price ? 'inline-flex' : 'none';
+            priceEl.textContent = tile.price ? `${tile.price}$` : '';
+          }
         } else {
-          houseEl.innerHTML = '';
+          // Unowned: restore original price pill
+          priceEl.className = 'richup-price-tag';
+          priceEl.style.backgroundColor = '';
+          priceEl.style.display = tile.price ? 'inline-flex' : 'none';
+          priceEl.textContent = tile.price ? `${tile.price}$` : '';
         }
       }
     });
@@ -1294,6 +1668,7 @@ class RichupGame {
   renderPlayerTokens() {
     if (!this.gameState) return;
 
+    if (!this.animatingTokens) this.animatingTokens = {};
     const activePlayerIds = new Set();
 
     this.gameState.players.forEach(p => {
@@ -1303,6 +1678,7 @@ class RichupGame {
         const existingToken = document.getElementById(`player-token-${p.id}`);
         if (existingToken) existingToken.remove();
         delete this.previousPositions[p.id];
+        delete this.animatingTokens[p.id];
         return;
       }
 
@@ -1314,11 +1690,12 @@ class RichupGame {
       if (!token) {
         token = document.createElement('div');
         token.id = `player-token-${p.id}`;
-        token.className = 'player-token';
-        token.style.borderColor = p.color;
-        token.innerHTML = p.avatar;
+        token.className = 'player-token token-spawn';
+        token.innerHTML = `<span class="token-emoji">${p.avatar}</span>`;
       }
-      token.title = `${p.name} ($${p.cash})`;
+      token.style.borderColor = p.color;
+      token.style.setProperty('--pcolor', p.color);
+      token.title = `${p.name} (${p.cash < 0 ? `-$${Math.abs(p.cash)}` : `$${p.cash}`})`;
 
       // Disconnect status badge over token on the board
       let discBadge = token.querySelector('.token-disconnect-badge');
@@ -1334,6 +1711,11 @@ class RichupGame {
         discBadge.setAttribute('data-deadline', p.disconnect_deadline);
       } else if (discBadge) {
         discBadge.remove();
+      }
+
+      // If token is currently animating to targetPos, let it complete smoothly without interruption
+      if (this.animatingTokens[p.id] !== undefined) {
+        return;
       }
 
       // If dice are currently rolling, hold token at previous position until dice settle
@@ -1355,8 +1737,15 @@ class RichupGame {
         return;
       }
 
-      // Position changed -> animate smooth swish from prevPos to targetPos!
-      this.animatePlayerSwish(p, token, prevPos, targetPos);
+      // Position changed -> check if card movement occurred with intermediate pause!
+      const lastCard = this.gameState.last_card;
+      if (lastCard && lastCard.intermediate_tile !== undefined && lastCard.destination_tile !== undefined && targetPos === lastCard.destination_tile) {
+        const intermediateTile = lastCard.intermediate_tile;
+        delete lastCard.intermediate_tile;
+        this.animatePlayerSwishWithPause(p, token, prevPos, intermediateTile, targetPos, lastCard);
+      } else {
+        this.animatePlayerSwish(p, token, prevPos, targetPos);
+      }
     });
 
     // Remove tokens for players who left or were removed
@@ -1365,11 +1754,28 @@ class RichupGame {
       if (!activePlayerIds.has(pid)) {
         tok.remove();
         delete this.previousPositions[pid];
+        if (this.animatingTokens) delete this.animatingTokens[pid];
       }
     });
   }
 
-  animatePlayerSwish(p, token, startPos, endPos) {
+  animatePlayerSwishWithPause(p, token, startPos, cardPos, endPos, card) {
+    this.animatePlayerSwish(p, token, startPos, cardPos, () => {
+      // Pause at the card tile so the player sees their token landing on Chance / Treasure!
+      if (card) {
+        const cardType = card.type === 'chance' ? 'surprise' : 'treasure';
+        this.showCardPopup(card.desc || card.title, cardType);
+        if (window.soundEngine && typeof window.soundEngine.cardEffect === 'function') {
+          window.soundEngine.cardEffect();
+        }
+      }
+      setTimeout(() => {
+        this.animatePlayerSwish(p, token, cardPos, endPos);
+      }, 1200);
+    });
+  }
+
+  animatePlayerSwish(p, token, startPos, endPos, onComplete = null) {
     if (!this.activeSwishTimers) this.activeSwishTimers = {};
     if (this.activeSwishTimers[p.id]) {
       this.activeSwishTimers[p.id].forEach(t => clearTimeout(t));
@@ -1377,24 +1783,39 @@ class RichupGame {
     }
     this.activeSwishTimers[p.id] = [];
 
+    if (!this.animatingTokens) this.animatingTokens = {};
+    this.animatingTokens[p.id] = endPos;
+    this.previousPositions[p.id] = endPos;
+
     // Compute step path along board
     let path = [];
-    if (p.in_jail && endPos === 10 && startPos !== 9) {
-      path = [10]; // Direct to jail
+    const totalTiles = this.boardData && this.boardData.tiles ? this.boardData.tiles.length : 40;
+    const jailId = totalTiles === 48 ? 12 : 10;
+    if (p.in_jail && endPos === jailId && startPos !== jailId - 1) {
+      path = [jailId]; // Direct to jail
     } else {
-      const numSteps = (endPos - startPos + 40) % 40;
-      for (let s = 1; s <= numSteps; s++) {
-        path.push((startPos + s) % 40);
+      const fwdSteps = (endPos - startPos + totalTiles) % totalTiles;
+      const bwdSteps = (startPos - endPos + totalTiles) % totalTiles;
+      // If moving backwards (e.g. Go Back 3 spaces, where bwdSteps <= 5 && fwdSteps > 20)
+      if (bwdSteps > 0 && bwdSteps <= 5 && fwdSteps > 20) {
+        for (let s = 1; s <= bwdSteps; s++) {
+          path.push((startPos - s + totalTiles) % totalTiles);
+        }
+      } else {
+        for (let s = 1; s <= fwdSteps; s++) {
+          path.push((startPos + s) % totalTiles);
+        }
       }
     }
 
     if (path.length === 0) {
-      this.previousPositions[p.id] = endPos;
+      delete this.animatingTokens[p.id];
+      if (onComplete) onComplete();
       return;
     }
 
-    // Step duration: between 60ms and 95ms per tile step
-    const stepInterval = Math.max(55, Math.min(95, Math.floor(650 / path.length)));
+    // Smooth consistent step cadence: 110ms per tile hop
+    const stepInterval = 110;
 
     path.forEach((tileIdx, idx) => {
       const timer = setTimeout(() => {
@@ -1402,14 +1823,19 @@ class RichupGame {
         if (slot) {
           slot.appendChild(token);
           token.classList.remove('swishing');
-          void token.offsetWidth; // trigger reflow for smooth re-animation
           token.classList.add('swishing');
-          window.soundEngine.swish();
+          if (window.soundEngine && typeof window.soundEngine.swish === 'function') {
+            window.soundEngine.swish();
+          }
         }
 
         if (idx === path.length - 1) {
-          this.previousPositions[p.id] = endPos;
-          setTimeout(() => token.classList.remove('swishing'), 160);
+          delete this.animatingTokens[p.id];
+          setTimeout(() => {
+            token.classList.remove('swishing');
+            this.renderCenterDeck();
+            if (onComplete) onComplete();
+          }, stepInterval);
         }
       }, idx * stepInterval);
 
@@ -1426,6 +1852,25 @@ class RichupGame {
     const isBankrupt = myPlayer && myPlayer.is_bankrupt;
     const isMyTurn = !this.isSpectator && !isBankrupt && currPlayer && currPlayer.id === this.playerId;
 
+    // Active Market Event Banner
+    const eventContainer = document.getElementById('active-event-container');
+    if (eventContainer) {
+      if (state.active_event) {
+        const ev = state.active_event;
+        eventContainer.innerHTML = `
+          <div class="active-event-banner">
+            <span class="event-banner-badge">⚡ MARKET EVENT</span>
+            <span class="event-banner-title">${ev.emoji} ${ev.name} (${ev.remaining_rounds} ${ev.remaining_rounds === 1 ? 'round' : 'rounds'} left)</span>
+            <span class="event-banner-desc">${ev.description}</span>
+          </div>
+        `;
+        eventContainer.style.display = 'block';
+      } else {
+        eventContainer.innerHTML = '';
+        eventContainer.style.display = 'none';
+      }
+    }
+
     // Turn indicator
     const turnPill = document.getElementById('center-turn-pill');
     if (turnPill) {
@@ -1435,24 +1880,20 @@ class RichupGame {
       `;
     }
 
-    // Turn timer
+    // Turn timer - runs continuously until turn ends
     this.currentTurnTimeLeft = state.turn_time_left;
     const timerBox = document.getElementById('center-timer-box');
     if (timerBox) {
-      if (state.turn_phase === 'WAITING_END_TURN' && currPlayer.cash >= 0) {
-        timerBox.innerText = '⏸️';
-        timerBox.classList.remove('urgent');
-        timerBox.title = 'Turn timer paused - manage properties or press End Turn';
+      timerBox.innerText = `${state.turn_time_left}s`;
+      if (state.turn_time_left <= 10 || currPlayer.cash < 0) {
+        timerBox.classList.add('urgent');
       } else {
-        timerBox.innerText = `${state.turn_time_left}s`;
-        if (state.turn_time_left <= 10 || currPlayer.cash < 0) {
-          timerBox.classList.add('urgent');
-        } else {
-          timerBox.classList.remove('urgent');
-        }
-        if (currPlayer.cash < 0) {
-          timerBox.title = 'Resolve negative balance before timer expires!';
-        }
+        timerBox.classList.remove('urgent');
+      }
+      if (currPlayer.cash < 0) {
+        timerBox.title = 'Resolve negative balance before timer expires!';
+      } else {
+        timerBox.title = `Turn time remaining: ${state.turn_time_left}s`;
       }
     }
 
@@ -1544,19 +1985,27 @@ class RichupGame {
         }
       }
     } else if (state.turn_phase === 'WAITING_END_TURN') {
-      const inDebt = currPlayer.cash < 0;
+      const inDebt = currPlayer && currPlayer.cash < 0;
       if (inDebt) {
         promptEl.innerHTML = isMyTurn
           ? `<div class="debt-warning-box">⚠️ <strong>Negative Balance: -$${Math.abs(currPlayer.cash)}</strong><br>You cannot end turn. Mortgage properties or trade to restore positive funds before time runs out, or bankruptcy will be declared!</div>`
-          : `<span style="color:#ef4444;">${currPlayer.name} owes money ($${currPlayer.cash})</span> and must liquidate properties or trade...`;
+          : `<span style="color:#ef4444;">${currPlayer.name} owes money (-$${Math.abs(currPlayer.cash)})</span> and must liquidate properties or trade...`;
+      } else if (myPlayer && myPlayer.cash < 0 && !myPlayer.is_bankrupt) {
+        promptEl.innerHTML = `<div class="debt-warning-box">⚠️ <strong>You are in debt: -$${Math.abs(myPlayer.cash)}!</strong><br>Mortgage properties or propose trades now to restore positive balance before your turn!</div>`;
       } else {
-        promptEl.innerText = isMyTurn ? 'Manage properties or pass turn.' : `Waiting for ${currPlayer.name}...`;
+        promptEl.innerText = isMyTurn ? 'Manage properties or pass turn.' : `Waiting for ${currPlayer ? currPlayer.name : 'player'}...`;
       }
       if (isMyTurn && endTurnBtn) {
         endTurnBtn.style.display = 'flex';
-        if (inDebt) {
+        const isTokenMoving = Boolean(this.animatingTokens && Object.keys(this.animatingTokens).length > 0);
+        if (isTokenMoving) {
           endTurnBtn.disabled = true;
-          endTurnBtn.innerHTML = `<span>⚠️ Debt: $${currPlayer.cash} (Can't End Turn)</span>`;
+          endTurnBtn.innerHTML = `<span>⏳ Moving...</span>`;
+          endTurnBtn.style.opacity = '0.5';
+          endTurnBtn.style.cursor = 'not-allowed';
+        } else if (inDebt) {
+          endTurnBtn.disabled = true;
+          endTurnBtn.innerHTML = `<span>⚠️ Debt: -$${Math.abs(currPlayer.cash)} (Must Liquidate)</span>`;
           endTurnBtn.style.opacity = '0.5';
           endTurnBtn.style.cursor = 'not-allowed';
         } else {
@@ -1671,131 +2120,145 @@ class RichupGame {
 
   // ================= Sidebar (Players & Event Feed) =================
   renderSidebar() {
-    if (!this.gameState) return;
-    const playersListEl = document.getElementById('sidebar-players-list');
-    const currentId = this.gameState.current_player_id;
+    try {
+      if (!this.gameState) return;
+      const playersListEl = document.getElementById('sidebar-players-list');
+      const currentId = this.gameState.current_player_id;
 
-    if (playersListEl) {
-      playersListEl.innerHTML = this.gameState.players.map(p => {
-        const isActive = p.id === currentId;
-        const isSelf = p.id === this.playerId;
+      if (playersListEl) {
+        playersListEl.innerHTML = this.gameState.players.map(p => {
+          const isActive = p.id === currentId;
+          const isSelf = p.id === this.playerId;
 
-        // Construct properties list for hover popover
-        let popoverItemsHtml = '';
-        if (p.properties && p.properties.length > 0) {
-          popoverItemsHtml = p.properties.map(tid => {
-            const tile = this.boardData.tiles[tid];
-            const state = this.gameState.tile_states[tid];
-            const gColor = tile.group && this.boardData.color_groups[tile.group] ? this.boardData.color_groups[tile.group].color : '#888';
-            const flagSvg = getCircularFlagSvg(tile.country_code);
+          // Construct properties list for hover popover
+          let popoverItemsHtml = '';
+          if (p.properties && p.properties.length > 0) {
+            popoverItemsHtml = p.properties.map(tid => {
+              const tile = this.boardData && this.boardData.tiles ? this.boardData.tiles[tid] : null;
+              if (!tile) return '';
+              const state = this.gameState && this.gameState.tile_states ? this.gameState.tile_states[tid] : null;
+              if (!state) return '';
+              const gColor = tile.group && this.boardData.color_groups && this.boardData.color_groups[tile.group] ? this.boardData.color_groups[tile.group].color : '#888';
+              const flagSvg = getCircularFlagSvg(tile.country_code);
 
-            let statusBadge = '';
-            if (state.mortgaged) {
-              statusBadge = '<span class="popover-badge-jail">MORTGAGED</span>';
-            } else if (p.in_jail && this.gameState.settings && this.gameState.settings.no_rent_in_prison) {
-              statusBadge = '<span class="popover-badge-jail">⛓️ $0 (In Prison)</span>';
-            } else if (state.houses === 5) {
-              statusBadge = '<span style="color:#ef4444;font-weight:700;">🏨 Hotel</span>';
-            } else if (state.houses > 0) {
-              statusBadge = `<span style="color:#22c55e;font-weight:700;">🏠×${state.houses}</span>`;
-            } else if (p.monopolies && p.monopolies.includes(tile.group) && this.gameState.settings && this.gameState.settings.double_rent_full_set) {
-              statusBadge = `<span class="popover-badge-x2">x2 Rent ($${tile.rent[0] * 2})</span>`;
-            } else {
-              statusBadge = `<span style="color:#cbd5e1;">Rent: $${tile.rent ? tile.rent[0] : (tile.type === 'railroad' ? 25 : 4)}</span>`;
-            }
+              let statusBadge = '';
+              if (state.mortgaged) {
+                statusBadge = '<span class="popover-badge-jail">MORTGAGED</span>';
+              } else if (p.in_jail && this.gameState.settings && this.gameState.settings.no_rent_in_prison) {
+                statusBadge = '<span class="popover-badge-jail">⛓️ $0 (In Prison)</span>';
+              } else if (state.houses === 5) {
+                statusBadge = '<span style="color:#ef4444;font-weight:700;">🏨 Hotel</span>';
+              } else if (state.houses > 0) {
+                statusBadge = `<span style="color:#22c55e;font-weight:700;">🏠×${state.houses}</span>`;
+              } else if (tile.type === 'property' && p.monopolies && p.monopolies.includes(tile.group) && this.gameState.settings && this.gameState.settings.double_rent_full_set && tile.rent && Array.isArray(tile.rent)) {
+                statusBadge = `<span class="popover-badge-x2">x2 Rent ($${(tile.rent[0] || 0) * 2})</span>`;
+              } else if (tile.rent && Array.isArray(tile.rent)) {
+                statusBadge = `<span style="color:#cbd5e1;">Rent: $${tile.rent[0] || 0}</span>`;
+              } else if (tile.type === 'railroad') {
+                statusBadge = '<span style="color:#cbd5e1;">Rent: $25-$200</span>';
+              } else if (tile.type === 'utility') {
+                statusBadge = '<span style="color:#cbd5e1;">Rent: 4x/10x Dice</span>';
+              } else {
+                statusBadge = '<span style="color:#cbd5e1;">Rent: $0</span>';
+              }
 
-            return `
-              <div class="popover-item" style="border-left-color:${gColor};">
-                <div class="popover-item-left">
-                  <div class="richup-flag-circle" style="width:20px;height:20px;min-width:20px;min-height:20px;">${flagSvg}</div>
-                  <div>
-                    <strong style="color:#fff;">${tile.name}</strong>
-                    <div style="font-size:0.65rem;color:var(--text-dim);">${tile.country || ''}</div>
+              return `
+                <div class="popover-item" style="border-left-color:${gColor};">
+                  <div class="popover-item-left">
+                    <div class="richup-flag-circle" style="width:20px;height:20px;min-width:20px;min-height:20px;">${flagSvg}</div>
+                    <div>
+                      <strong style="color:#fff;">${tile.name}</strong>
+                      <div style="font-size:0.65rem;color:var(--text-dim);">${tile.country || ''}</div>
+                    </div>
                   </div>
+                  <div>${statusBadge}</div>
                 </div>
-                <div>${statusBadge}</div>
-              </div>
-            `;
-          }).join('');
-        } else {
-          popoverItemsHtml = '<div style="color:var(--text-dim);font-size:0.75rem;padding:6px;text-align:center;">No properties owned yet</div>';
-        }
-
-        return `
-          <div class="player-card ${isActive ? 'active-turn' : ''} ${p.is_bankrupt ? 'bankrupt' : ''}" id="player-card-${p.id}" onclick="game.openPlayerDetails('${p.id}')">
-            <!-- Floating Hover Popover listing all properties -->
-            <div class="player-hover-popover">
-              <div class="popover-header">
-                <span>${p.name}'s Properties (${p.properties ? p.properties.length : 0})</span>
-                ${p.in_jail ? '<span class="prison-indicator">In Prison</span>' : ''}
-              </div>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                ${popoverItemsHtml}
-              </div>
-            </div>
-
-            <div class="player-card-top">
-              <div class="player-info-left">
-                <div class="player-avatar-small" style="border-color:${p.color}">${p.avatar}</div>
-                <div class="player-name-col">
-                  <div class="player-name-text">
-                    ${p.name}
-                    ${p.is_bot ? '<span class="player-status-badge badge-bot">BOT</span>' : ''}
-                    ${p.in_jail ? '<span class="player-status-badge badge-jail">JAIL</span>' : ''}
-                    ${p.is_bankrupt ? '<span class="player-status-badge badge-bankrupt">BANKRUPT</span>' : ''}
-                    ${!p.connected && p.disconnect_deadline ? `
-                      <span class="disconnect-timer-badge" data-player-id="${p.id}" data-deadline="${p.disconnect_deadline}">
-                        ⚠️ Offline (${p.disconnect_time_left !== null && p.disconnect_time_left !== undefined ? p.disconnect_time_left : Math.max(0, Math.ceil(p.disconnect_deadline - (Date.now() / 1000)))}s)
-                      </span>
-                    ` : ''}
-                  </div>
-                  <div class="player-networth">Net Worth: $${p.net_worth}</div>
-                </div>
-              </div>
-              <div class="player-financials">
-                <div class="player-cash ${p.cash < 0 ? 'negative-debt' : ''}" id="player-cash-${p.id}">
-                  $${p.cash}
-                </div>
-              </div>
-            </div>
-
-            <!-- Compact summary bar hiding raw properties list by default -->
-            <div class="player-prop-summary-bar">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <div class="prop-count-pill">
-                  <span>🏠 ${p.properties ? p.properties.length : 0} Properties</span>
-                </div>
-                ${p.monopolies && p.monopolies.length > 0 ? `
-                  <div class="prop-count-pill" style="border-color:#f59e0b;color:#facc15;">
-                    <span>👑 ${p.monopolies.length} Monopoly</span>
-                  </div>
-                ` : ''}
-                ${p.in_jail ? `
-                  <span class="prison-indicator">⛓️ In Prison</span>
-                ` : ''}
-              </div>
-              <div class="view-profile-hint">Hover for list • Click for details ↗</div>
-            </div>
-
-            ${!isSelf && !p.is_bankrupt && this.gameState.state === 'PLAYING' && !this.isSpectator ? `
-              <div class="player-card-actions" style="margin-top:4px;" onclick="event.stopPropagation();">
-                <button class="mini-trade-btn" onclick="game.openTradeDesk('${p.id}')">🤝 Propose Trade</button>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
-
-      // Re-attach any in-flight floating delta without restarting its CSS animation
-      if (this.activeCashDeltaNodes) {
-        Object.keys(this.activeCashDeltaNodes).forEach(pId => {
-          const node = this.activeCashDeltaNodes[pId];
-          const cashEl = document.getElementById(`player-cash-${pId}`);
-          if (cashEl && node && !node.isConnected) {
-            cashEl.appendChild(node);
+              `;
+            }).join('');
+          } else {
+            popoverItemsHtml = '<div style="color:var(--text-dim);font-size:0.75rem;padding:6px;text-align:center;">No properties owned yet</div>';
           }
-        });
+
+          return `
+            <div class="player-card ${isActive ? 'active-turn' : ''} ${p.is_bankrupt ? 'bankrupt' : ''}" id="player-card-${p.id}" onclick="game.openPlayerDetails('${p.id}')">
+              <!-- Floating Hover Popover listing all properties -->
+              <div class="player-hover-popover">
+                <div class="popover-header">
+                  <span>${p.name}'s Properties (${p.properties ? p.properties.length : 0})</span>
+                  ${p.in_jail ? '<span class="prison-indicator">In Prison</span>' : ''}
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  ${popoverItemsHtml}
+                </div>
+              </div>
+
+              <div class="player-card-top">
+                <div class="player-info-left">
+                  <div class="player-avatar-small" style="border-color:${p.color}">${p.avatar}</div>
+                  <div class="player-name-col">
+                    <div class="player-name-text">
+                      ${p.name}
+                      ${p.is_bot ? '<span class="player-status-badge badge-bot">BOT</span>' : ''}
+                      ${p.in_jail ? '<span class="player-status-badge badge-jail">JAIL</span>' : ''}
+                      ${p.vacation_skip ? '<span class="player-status-badge badge-vacation">🌴 VACATION</span>' : ''}
+                      ${p.cash < 0 ? '<span class="player-status-badge badge-debt">DEBT</span>' : ''}
+                      ${p.is_bankrupt ? '<span class="player-status-badge badge-bankrupt">BANKRUPT</span>' : ''}
+                      ${!p.connected && p.disconnect_deadline ? `
+                        <span class="disconnect-timer-badge" data-player-id="${p.id}" data-deadline="${p.disconnect_deadline}">
+                          ⚠️ Offline (${p.disconnect_time_left !== null && p.disconnect_time_left !== undefined ? p.disconnect_time_left : Math.max(0, Math.ceil(p.disconnect_deadline - (Date.now() / 1000)))}s)
+                        </span>
+                      ` : ''}
+                    </div>
+                    <div class="player-networth">Net Worth: ${p.net_worth < 0 ? `-$${Math.abs(p.net_worth)}` : `$${p.net_worth}`}</div>
+                  </div>
+                </div>
+                <div class="player-financials">
+                  <div class="player-cash ${p.cash < 0 ? 'negative-debt' : ''}" id="player-cash-${p.id}">
+                    ${p.cash < 0 ? `-$${Math.abs(p.cash)}` : `$${p.cash}`}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Compact summary bar hiding raw properties list by default -->
+              <div class="player-prop-summary-bar">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="prop-count-pill">
+                    <span>🏠 ${p.properties ? p.properties.length : 0} Properties</span>
+                  </div>
+                  ${p.monopolies && p.monopolies.length > 0 ? `
+                    <div class="prop-count-pill" style="border-color:#f59e0b;color:#facc15;">
+                      <span>👑 ${p.monopolies.length} Monopoly</span>
+                    </div>
+                  ` : ''}
+                  ${p.in_jail ? `
+                    <span class="prison-indicator">⛓️ In Prison</span>
+                  ` : ''}
+                </div>
+                <div class="view-profile-hint">Hover for list • Click for details ↗</div>
+              </div>
+
+              ${!isSelf && !p.is_bankrupt && this.gameState.state === 'PLAYING' && !this.isSpectator ? `
+                <div class="player-card-actions" style="margin-top:4px;" onclick="event.stopPropagation();">
+                  <button class="mini-trade-btn" onclick="game.openTradeDesk('${p.id}')">🤝 Propose Trade</button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+
+        // Re-attach any in-flight floating delta without restarting its CSS animation
+        if (this.activeCashDeltaNodes) {
+          Object.keys(this.activeCashDeltaNodes).forEach(pId => {
+            const node = this.activeCashDeltaNodes[pId];
+            const cashEl = document.getElementById(`player-cash-${pId}`);
+            if (cashEl && node && !node.isConnected) {
+              cashEl.appendChild(node);
+            }
+          });
+        }
       }
+    } catch (e) {
+      console.error('Error in renderSidebar:', e);
     }
 
     // Activity log feed (Real-time game event log only - no chat per instructions)
@@ -2118,7 +2581,13 @@ class RichupGame {
       `;
     }
 
-    const mortgageValue = tile.mortgage || (tile.price ? tile.price / 2 : 0);
+    const hasShop = Boolean(state && state.shops && state.shops > 0);
+    const shopMortgageBoost = hasShop ? Math.floor((tile.house_cost || 100) * 0.6) : 0;
+    let calculatedMortgage = (tile.mortgage || (tile.price ? tile.price / 2 : 0)) + shopMortgageBoost;
+    if (this.gameState && this.gameState.active_event && this.gameState.active_event.id === 'REAL_ESTATE_BOOM') {
+      calculatedMortgage = Math.floor(calculatedMortgage * 1.5);
+    }
+    const mortgageValue = calculatedMortgage;
     const flagSvg = getCircularFlagSvg(tile.country_code);
 
     content.innerHTML = `
@@ -2137,7 +2606,18 @@ class RichupGame {
         </div>
         ${rentSchedule}
         <div class="deed-divider"></div>
-        <div class="deed-info-row"><span>Mortgage (50%):</span><span>$${mortgageValue}</span></div>
+        <div class="deed-info-row">
+          <span>Mortgage Value:</span>
+          <span>$${mortgageValue}${hasShop ? ' (includes shop)' : ''}</span>
+        </div>
+        ${tile.type === 'property' && (!this.gameState || !this.gameState.settings || this.gameState.settings.advanced_shops !== false) ? `
+          <div class="deed-info-row">
+            <span>Advanced Shop:</span>
+            <span style="font-weight:700;color:${hasShop ? '#059669' : '#64748b'};display:inline-flex;align-items:center;gap:6px;">
+              ${hasShop ? '<img src="/img/shop.svg" class="shop-deed-icon" alt="" /> Built (+60% mortgage value)' : 'None'}
+            </span>
+          </div>
+        ` : ''}
         <div class="deed-info-row"><span>Status:</span><span style="${isMortgaged ? 'color:#ef4444;font-weight:800;' : ''}">${isMortgaged ? 'MORTGAGED ($0 Rent)' : (state && state.owner ? 'Active' : 'Unowned')}</span></div>
         <div class="deed-info-row"><span>Owner:</span><span style="color:${owner ? owner.color : '#666'}">${owner ? `${owner.name}${owner.in_jail ? ' ⛓️ (In Prison)' : ''}` : 'Unowned'}</span></div>
 
@@ -2145,16 +2625,28 @@ class RichupGame {
         <div style="margin-top:10px;padding:8px;background:#f8fafc;border-radius:6px;font-size:0.72rem;color:#475569;line-height:1.35;">
           • <strong>x2 Rent Rule:</strong> ${this.gameState && this.gameState.settings && this.gameState.settings.double_rent_full_set ? 'Enabled (2x base rent on full unimproved set)' : 'Disabled'}<br>
           • <strong>Prison Rule:</strong> ${this.gameState && this.gameState.settings && this.gameState.settings.no_rent_in_prison ? 'No rent collected while owner is in prison' : 'Rent collected normally'}<br>
-          • <strong>Even Build Rule:</strong> ${this.gameState && this.gameState.settings && this.gameState.settings.even_build ? 'Enabled (must build/sell evenly across set)' : 'Disabled'}
+          • <strong>Even Build Rule:</strong> ${this.gameState && this.gameState.settings && this.gameState.settings.even_build ? 'Enabled (must build/sell evenly across set)' : 'Disabled'}<br>
+          • <strong>Advanced Shops:</strong> ${this.gameState && this.gameState.settings && this.gameState.settings.advanced_shops ? 'Enabled (shops boost mortgage value, safe to mortgage)' : 'Disabled'}
         </div>
 
         ${isMine && !this.isSpectator ? `
           <div class="deed-controls">
             ${tile.type === 'property' && state.houses < 5 && !state.mortgaged ? `
-              <button class="btn-primary" style="padding:8px;font-size:0.85rem;" onclick="game.buildHouse(${tileId})">🏠 Build House ($${tile.house_cost})</button>
+              <button class="btn-primary" style="padding:8px;font-size:0.85rem;" onclick="game.buildHouse(${tileId})">
+                ${state.houses === 4 ? `🏨 Build Hotel ($${tile.house_cost})` : `🏠 Build House ($${tile.house_cost})`}
+              </button>
             ` : ''}
             ${tile.type === 'property' && state.houses > 0 ? `
-              <button class="btn-secondary" style="padding:8px;font-size:0.85rem;" onclick="game.sellHouse(${tileId})">🔨 Sell House (+$${tile.house_cost / 2})</button>
+              <button class="btn-secondary" style="padding:8px;font-size:0.85rem;" onclick="game.sellHouse(${tileId})">
+                ${state.houses === 5 ? `🔨 Sell Hotel (+$${Math.floor(tile.house_cost / 2)})` : `🔨 Sell House (+$${Math.floor(tile.house_cost / 2)})`}
+              </button>
+            ` : ''}
+            ${tile.type === 'property' && (!this.gameState || !this.gameState.settings || this.gameState.settings.advanced_shops !== false) ? `
+              ${!hasShop ? `
+                <button class="btn-primary" style="padding:8px;font-size:0.85rem;background:#059669;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="game.buildShop(${tileId})"><img src="/img/shop.svg" class="shop-btn-icon" alt="" /> Build Shop ($${tile.house_cost})</button>
+              ` : `
+                <button class="btn-secondary" style="padding:8px;font-size:0.85rem;color:#f59e0b;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="game.sellShop(${tileId})"><img src="/img/shop.svg" class="shop-btn-icon" style="filter:none;" alt="" /> Sell Shop (+$${Math.floor(tile.house_cost / 2)})</button>
+              `}
             ` : ''}
             ${!state.mortgaged && state.houses === 0 && (this.gameState.settings ? this.gameState.settings.mortgage_enabled : true) ? `
               <button class="btn-secondary" style="padding:8px;font-size:0.85rem;color:#f87171;" onclick="game.mortgageProperty(${tileId})">Mortgage (+$${mortgageValue})</button>
@@ -2170,7 +2662,7 @@ class RichupGame {
     this.openModal('modal-deed');
   }
 
-  buildHouse(tileId) {
+  buildShop(tileId) {
     const tid = parseInt(tileId, 10);
     const tile = this.boardData && this.boardData.tiles ? this.boardData.tiles[tid] : null;
     const myPlayer = this.gameState && this.gameState.players ? this.gameState.players.find(p => p.id === this.playerId) : null;
@@ -2178,11 +2670,54 @@ class RichupGame {
 
     if (tile && myPlayer && tileState) {
       if (tileState.owner !== this.playerId) {
-        this.showActionReasonPopup('Cannot Build House', 'You do not own this property.');
+        this.showActionReasonPopup('Cannot Build Shop', 'You do not own this property.');
         return;
       }
       if (tile.type !== 'property') {
-        this.showActionReasonPopup('Cannot Build House', 'Houses can only be built on street properties in color groups.');
+        this.showActionReasonPopup('Cannot Build Shop', 'Advanced shops can only be built on street color properties.');
+        return;
+      }
+      if (tileState.shops >= 1) {
+        this.showActionReasonPopup('Shop Already Built', 'This property already has an Advanced Shop.');
+        return;
+      }
+      const cost = tile.house_cost || 100;
+      if (myPlayer.cash < cost) {
+        this.showActionReasonPopup('Insufficient Cash', `Building an Advanced Shop costs $${cost}, but your balance is only $${myPlayer.cash}.`);
+        return;
+      }
+    }
+
+    this.sendAction({ action: 'BUILD_SHOP', tileId: tileId });
+    window.soundEngine.buildHouse();
+    this.closeAllModals();
+  }
+
+  sellShop(tileId) {
+    this.sendAction({ action: 'SELL_SHOP', tileId: tileId });
+    window.soundEngine.sellHouse();
+    this.closeAllModals();
+  }
+
+  buildHouse(tileId) {
+    const tid = parseInt(tileId, 10);
+    const tile = this.boardData && this.boardData.tiles ? this.boardData.tiles[tid] : null;
+    const myPlayer = this.gameState && this.gameState.players ? this.gameState.players.find(p => p.id === this.playerId) : null;
+    const tileState = this.gameState && this.gameState.tile_states ? this.gameState.tile_states[tid] : null;
+
+    if (tile && myPlayer && tileState) {
+      const isHotel = tileState.houses === 4;
+      const buildName = isHotel ? 'Hotel' : 'House';
+      if (this.gameState && this.gameState.current_player_id !== this.playerId) {
+        this.showActionReasonPopup(`Cannot Build ${buildName}`, 'Houses and hotels can only be built during your own turn.');
+        return;
+      }
+      if (tileState.owner !== this.playerId) {
+        this.showActionReasonPopup(`Cannot Build ${buildName}`, 'You do not own this property.');
+        return;
+      }
+      if (tile.type !== 'property') {
+        this.showActionReasonPopup(`Cannot Build ${buildName}`, 'Houses and hotels can only be built on street properties in color groups.');
         return;
       }
       const groupKey = tile.group;
@@ -2190,16 +2725,16 @@ class RichupGame {
       const ownsAll = groupTiles.every(tId => this.gameState.tile_states[tId] && this.gameState.tile_states[tId].owner === this.playerId);
       if (!ownsAll) {
         const gName = this.boardData.color_groups[groupKey] ? this.boardData.color_groups[groupKey].name : 'this';
-        this.showActionReasonPopup('Monopoly Required', `You must own all properties in the ${gName} color group before you can build houses.`);
+        this.showActionReasonPopup('Monopoly Required', `You must own all properties in the ${gName} color group before you can build ${isHotel ? 'a hotel' : 'houses'}.`);
         return;
       }
       const hasMortgaged = groupTiles.some(tId => this.gameState.tile_states[tId] && this.gameState.tile_states[tId].mortgaged);
       if (hasMortgaged) {
-        this.showActionReasonPopup('Mortgaged Property', 'You cannot build houses while any property in this color group is mortgaged. Unmortgage it first.');
+        this.showActionReasonPopup('Mortgaged Property', `You cannot build ${isHotel ? 'a hotel' : 'houses'} while any property in this color group is mortgaged. Unmortgage it first.`);
         return;
       }
       if (tileState.houses >= 5) {
-        this.showActionReasonPopup('Maximum Development', 'This property already has a hotel (maximum 5 houses).');
+        this.showActionReasonPopup('Maximum Development', 'This property already has a hotel (maximum development level).');
         return;
       }
       const evenBuild = !this.gameState.settings || this.gameState.settings.even_build !== false;
@@ -2216,7 +2751,7 @@ class RichupGame {
         }
       }
       if (myPlayer.cash < tile.house_cost) {
-        this.showActionReasonPopup('Insufficient Cash', `Building a house on ${tile.name} costs $${tile.house_cost}, but your balance is only $${myPlayer.cash}.`);
+        this.showActionReasonPopup('Insufficient Cash', `Building a ${buildName.toLowerCase()} on ${tile.name} costs $${tile.house_cost}, but your balance is only $${myPlayer.cash}.`);
         return;
       }
     }
@@ -2319,7 +2854,7 @@ class RichupGame {
     const banner = document.getElementById('modal-auction');
     if (!this.gameState || !this.gameState.auction) {
       this.heldAuctionTileId = null;
-      if (banner) banner.classList.remove('active');
+      this.closeModal('modal-auction');
       return;
     }
 
@@ -2331,7 +2866,7 @@ class RichupGame {
 
     // If user clicked close/cross on the auction popup, keep it closed (interact from sidebar)
     if (this.heldAuctionTileId === auc.tile_id) {
-      if (banner) banner.classList.remove('active');
+      this.closeModal('modal-auction');
       return;
     }
     const tile = this.boardData.tiles[auc.tile_id];
@@ -2344,18 +2879,19 @@ class RichupGame {
     if (!content) return;
 
     let timerHtml = '';
-    if (auc.highest_bid > 0 && auc.deadline) {
+    if (auc.deadline) {
       const now = Date.now() / 1000;
       const timeLeft = Math.max(0, Math.ceil(auc.deadline - now));
+      const isUrgent = timeLeft <= 2 && timeLeft > 0;
       timerHtml = `
-        <div class="timer-box urgent auction-timer-display" id="auction-timer-pill" style="align-self:center;font-size:1.15rem;padding:6px 18px;">
+        <div class="timer-box auction-timer-display ${isUrgent ? 'urgent' : ''}" id="auction-timer-pill" style="align-self:center;font-size:1.15rem;padding:6px 18px;background:rgba(245,158,11,0.18);border:1px solid #f59e0b;color:#fbbf24;">
           ⏱️ Ending in <strong>${timeLeft}s</strong>
         </div>
       `;
     } else {
       timerHtml = `
         <div class="timer-box auction-timer-display" id="auction-timer-pill" style="align-self:center;font-size:0.95rem;padding:6px 16px;background:rgba(255,255,255,0.06);color:var(--text-muted);">
-          ⚖️ Place your bet • 3s timer starts on first bet
+          ⚖️ Place your bet (15s to place bid)
         </div>
       `;
     }
@@ -3230,6 +3766,10 @@ class RichupGame {
 
 // Global initialization
 window.game = new RichupGame();
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.game.init();
+  });
+} else {
   window.game.init();
-});
+}
