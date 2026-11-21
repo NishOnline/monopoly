@@ -1059,9 +1059,17 @@ COLOR_GROUPS_EXTENDED = {
 
 # Registered board maps
 MAPS = {
+    "classic": {
+        "id": "classic",
+        "name": "Classic",
+        "size": 40,
+        "grid_size": 11,
+        "tiles": BOARD_TILES_STANDARD,
+        "color_groups": COLOR_GROUPS_STANDARD
+    },
     "standard": {
-        "id": "standard",
-        "name": "Standard",
+        "id": "classic",
+        "name": "Classic",
         "size": 40,
         "grid_size": 11,
         "tiles": BOARD_TILES_STANDARD,

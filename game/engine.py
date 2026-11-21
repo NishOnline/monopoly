@@ -24,7 +24,7 @@ DEFAULT_SETTINGS = {
     "mortgage_enabled": True,
     "advanced_shops": True,
     "random_events": True,
-    "map": "standard",
+    "map": "classic",
     "is_public": False
 }
 
@@ -78,7 +78,7 @@ class GameRoom:
         self.vacation_tile_id: int = 20
         self.goto_jail_tile_id: int = 30
         self.tile_states: Dict[int, Dict[str, Any]] = {}
-        self.set_map(self.settings.get("map", "standard"))
+        self.set_map(self.settings.get("map", "classic"))
 
         # Game state tracking
         self.turn_phase = "WAITING_ROLL"  # WAITING_ROLL, LANDED_ACTION, WAITING_END_TURN, AUCTION, DEBT
@@ -123,8 +123,11 @@ class GameRoom:
         self.add_player(host_id, host_name, is_host=True)
 
     def set_map(self, map_name: str):
+        map_name = (map_name or "classic").lower()
+        if map_name == "standard":
+            map_name = "classic"
         if map_name not in MAPS:
-            map_name = "standard"
+            map_name = "classic"
         self.settings["map"] = map_name
         cfg = MAPS[map_name]
         self.board_tiles = copy.deepcopy(cfg["tiles"])

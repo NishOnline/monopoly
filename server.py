@@ -623,9 +623,11 @@ async def api_board_info(request):
     import importlib
     import game.board_data as bd
     importlib.reload(bd)
-    map_name = request.query.get("map", "standard").lower()
+    map_name = request.query.get("map", "classic").lower()
+    if map_name == "standard":
+        map_name = "classic"
     if map_name not in bd.MAPS:
-        map_name = "standard"
+        map_name = "classic"
     cfg = bd.MAPS[map_name]
     return web.json_response({
         "map": map_name,

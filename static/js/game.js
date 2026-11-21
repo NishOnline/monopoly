@@ -19,14 +19,26 @@ const CIRCULAR_FLAGS = {
   AIRPORT: `<svg viewBox="0 0 32 32" class="flag-circle-svg airport-icon-svg"><circle cx="16" cy="16" r="16" fill="#1e293b"/><path d="M16,5 L19,13 L28,17 L28,19.5 L19,17.5 L19,23.5 L21.5,25.5 L21.5,27.5 L16,26 L10.5,27.5 L10.5,25.5 L13,23.5 L13,17.5 L4,19.5 L4,17 L13,13 Z" fill="#94a3b8"/></svg>`,
   WATER: `<svg viewBox="0 0 32 32" class="flag-circle-svg water-icon-svg"><circle cx="16" cy="16" r="16" fill="#0891b2"/><path d="M11,11 H19 V15 H15 V20 H11 Z" fill="#ffffff"/><rect x="8" y="9" width="14" height="4" rx="2" fill="#e0f2fe"/><circle cx="17" cy="24" r="2.5" fill="#ffffff"/></svg>`,
   POWER: `<svg viewBox="0 0 32 32" class="flag-circle-svg power-icon-svg"><circle cx="16" cy="16" r="16" fill="#1e1b4b"/><polygon points="17,3 8,16 15,16 13,29 23,14 17,14" fill="#facc15" filter="drop-shadow(0 0 4px #facc15)"/></svg>`,
-  CHEST: `<svg viewBox="0 0 36 36" class="flag-circle-svg treasure-chest-svg"><rect x="4" y="13" width="28" height="17" rx="3" fill="#b45309"/><path d="M4,13 C4,8 10,5 18,5 C26,5 32,8 32,13 Z" fill="#d97706"/><rect x="3" y="12" width="30" height="4" rx="2" fill="#78350f"/><rect x="15" y="13" width="6" height="7" rx="2" fill="#fef08a" stroke="#ca8a04" stroke-width="1.2"/><circle cx="18" cy="16.5" r="1.3" fill="#78350f"/><rect x="8" y="13" width="3" height="17" fill="#ca8a04"/><rect x="25" y="13" width="3" height="17" fill="#ca8a04"/></svg>`,
-  CHANCE: `<svg viewBox="0 0 36 36" class="flag-circle-svg surprise-icon-svg"><text x="18" y="27" font-family="'Outfit', sans-serif" font-size="28" font-weight="900" text-anchor="middle" fill="#ec4899" filter="drop-shadow(0 0 5px #ec4899)">?</text></svg>`,
+  CHEST: `<svg viewBox="0 0 36 36" class="flag-circle-svg treasure-chest-svg"><rect x="4" y="11" width="28" height="21" rx="3" fill="#e65100"/><rect x="2" y="8" width="32" height="6" rx="2" fill="#ff9800"/><rect x="15" y="8" width="6" height="24" fill="#ffd54f"/><path d="M14,8 C10,3 5,4 8,8 Z" fill="#ffd54f"/><path d="M22,8 C26,3 31,4 28,8 Z" fill="#ffd54f"/><circle cx="18" cy="8" r="2.5" fill="#ffca28"/></svg>`,
+  CHANCE: `<svg viewBox="0 0 36 36" class="flag-circle-svg surprise-icon-svg"><text x="18" y="28" font-family="'Outfit', sans-serif" font-size="29" font-weight="900" text-anchor="middle" fill="#dc2626" filter="drop-shadow(0 1px 3px rgba(220,38,38,0.4))">?</text></svg>`,
   TAX: `<svg viewBox="0 0 32 32" class="flag-circle-svg tax-icon-svg"><rect x="6" y="5" width="20" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.5"/><text x="16" y="15" font-family="'Outfit', sans-serif" font-size="9" font-weight="800" text-anchor="middle" fill="#94a3b8">$</text><text x="16" y="23" font-family="'Outfit', sans-serif" font-size="8" font-weight="800" text-anchor="middle" fill="#38bdf8">%10</text></svg>`,
-  PREMIUM_TAX: `<svg viewBox="0 0 32 32" class="flag-circle-svg tax-icon-svg"><circle cx="16" cy="16" r="16" fill="#1e1b4b"/><polygon points="16,6 23,13 16,24 9,13" fill="#38bdf8" stroke="#93c5fd" stroke-width="1.2"/><text x="16" y="29" font-family="'Outfit', sans-serif" font-size="6.5" font-weight="800" text-anchor="middle" fill="#ffffff">$75</text></svg>`
+  PREMIUM_TAX: `<svg viewBox="0 0 32 32" class="flag-circle-svg tax-icon-svg"><polygon points="16,3 28,11 16,29 4,11" fill="#38bdf8" stroke="#0284c7" stroke-width="1.2"/><polygon points="16,3 23,11 16,29 9,11" fill="#7dd3fc"/><polygon points="9,11 16,3 23,11" fill="#bae6fd"/></svg>`
 };
 
 function getCircularFlagSvg(code) {
   return CIRCULAR_FLAGS[code] || `<svg viewBox="0 0 32 32" class="flag-circle-svg"><circle cx="16" cy="16" r="16" fill="#3b82f6"/><text x="16" y="21" font-size="14" text-anchor="middle" fill="#fff">🌐</text></svg>`;
+}
+
+function darkenColor(hex, factor = 0.35) {
+  if (!hex || typeof hex !== 'string') return '#111827';
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return '#111827';
+  const r = Math.max(0, Math.floor(((num >> 16) & 255) * (1 - factor)));
+  const g = Math.max(0, Math.floor(((num >> 8) & 255) * (1 - factor)));
+  const b = Math.max(0, Math.floor((num & 255) * (1 - factor)));
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 function getCartoonJailSvg() {
@@ -654,7 +666,8 @@ class RichupGame {
 
   async fetchBoardData(preferredMap = null) {
     try {
-      const mapName = preferredMap || (this.gameState && this.gameState.settings && this.gameState.settings.map) || 'standard';
+      let mapName = preferredMap || (this.gameState && this.gameState.settings && this.gameState.settings.map) || 'classic';
+      if (mapName === 'standard') mapName = 'classic';
       const res = await fetch('/api/board?map=' + encodeURIComponent(mapName) + '&t=' + Date.now(), { cache: 'no-store' });
       const data = await res.json();
       this.mapsData = data.maps || null;
@@ -1004,11 +1017,13 @@ class RichupGame {
   }
 
   syncMapSegmented(mapVal) {
+    if (mapVal === 'standard') mapVal = 'classic';
     const hidden = document.getElementById('setting-map');
     if (hidden) hidden.value = mapVal;
     const btns = document.querySelectorAll('#segmented-map .seg-opt');
     btns.forEach(b => {
-      const val = b.getAttribute('data-val');
+      let val = b.getAttribute('data-val');
+      if (val === 'standard') val = 'classic';
       b.classList.toggle('active', val === mapVal);
     });
   }
@@ -1100,7 +1115,8 @@ class RichupGame {
       this.syncPillToggle('toggle-random-events', 'setting-random-events', data.settings.random_events !== false, 'gold');
       this.syncPrivacySegmented(Boolean(data.settings.is_public));
 
-      const currentMap = data.settings.map || 'standard';
+      let currentMap = data.settings.map || 'classic';
+      if (currentMap === 'standard') currentMap = 'classic';
       this.syncMapSegmented(currentMap);
       if (this.mapsData && this.mapsData[currentMap] && (!this.boardData || this.boardData.map !== currentMap)) {
         this.boardData = { ...this.mapsData[currentMap], map: currentMap, maps: this.mapsData };
@@ -1390,6 +1406,7 @@ class RichupGame {
     const totalTiles = tiles.length; // 40 (standard) or 48 (extended)
     const isExtended = totalTiles === 48;
     board.classList.toggle('map-extended', isExtended);
+    board.classList.toggle('map-classic', !isExtended);
 
     const sideLen = Math.floor(totalTiles / 4); // 10 for std, 12 for ext
     const gridSize = sideLen + 1; // 11 for std, 13 for ext
@@ -1485,6 +1502,8 @@ class RichupGame {
         else if (tile.type === 'chest') extraClass += ' tile-chest';
         else if (tile.type === 'chance') extraClass += ' tile-chance';
         else if (tile.type === 'railroad') extraClass += ' tile-railroad';
+        else if (tile.type === 'tax') extraClass += ' tile-tax';
+        else if (tile.type === 'utility') extraClass += ' tile-utility';
 
         let colorBar = '';
         if (tile.type === 'property' || tile.type === 'railroad' || tile.type === 'utility') {
@@ -1573,37 +1592,41 @@ class RichupGame {
       const tileSlot = document.getElementById(`tile-slot-${tile.id}`);
       const colorBar = tileSlot ? tileSlot.querySelector('.color-bar') : null;
       const ownerEl = document.getElementById(`owner-tile-${tile.id}`);
+      const priceEl = document.getElementById(`price-tag-tile-${tile.id}`);
 
-      // Default Group Color for the color bar
-      const groupColor = tile.group && colorGroups[tile.group] ? colorGroups[tile.group].color : null;
-      if (colorBar && groupColor) {
-        colorBar.style.display = 'block';
-        colorBar.style.setProperty('background-color', groupColor, 'important');
-      }
-
+      // Property ownership styling matching warm board design (Classic & Extended):
+      // Each unowned property shares the same warm parchment color with a slightly darker cream bar.
+      // When owned by a player, ONLY the bar changes to that player's color with subtle glow, and price tag shows player color
       if (state.owner && playersById[state.owner]) {
         const owner = playersById[state.owner];
-
-        // Owned property: show owner glow around the card & tint
+        if (colorBar) {
+          colorBar.style.display = 'block';
+          colorBar.style.setProperty('background-color', owner.color, 'important');
+          colorBar.style.setProperty('border-color', owner.color, 'important');
+          colorBar.style.boxShadow = `0 0 8px ${owner.color}80`;
+        }
         if (tileSlot) {
-          tileSlot.style.borderColor = owner.color;
-          tileSlot.style.background = `linear-gradient(135deg, ${owner.color}35 0%, rgba(20, 19, 38, 0.95) 100%)`;
-          tileSlot.style.boxShadow = `0 4px 16px ${owner.color}40, inset 0 0 16px ${owner.color}25`;
+          tileSlot.style.setProperty('background', `linear-gradient(135deg, ${owner.color}24 0%, #fcefd9 100%)`, 'important');
+          tileSlot.style.setProperty('border-color', owner.color, 'important');
+          tileSlot.style.boxShadow = `0 4px 14px ${owner.color}35`;
         }
-        if (ownerEl) {
-          ownerEl.style.display = 'block';
-          ownerEl.style.backgroundColor = owner.color;
-          ownerEl.style.boxShadow = `0 0 8px ${owner.color}`;
-        }
-      } else {
-        // Unowned property: keep clean rich card styling with color group bar
         if (ownerEl) {
           ownerEl.style.display = 'none';
         }
+      } else {
+        if (colorBar) {
+          colorBar.style.display = 'block';
+          colorBar.style.setProperty('background-color', '#fce5c0', 'important');
+          colorBar.style.setProperty('border-color', '#ebd0ad', 'important');
+          colorBar.style.boxShadow = 'none';
+        }
         if (tileSlot) {
-          tileSlot.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-          tileSlot.style.background = '';
+          tileSlot.style.setProperty('background', '#fcefd9', 'important');
+          tileSlot.style.setProperty('border-color', 'rgba(119, 65, 32, 0.28)', 'important');
           tileSlot.style.boxShadow = '';
+        }
+        if (ownerEl) {
+          ownerEl.style.display = 'none';
         }
       }
 
@@ -1619,7 +1642,6 @@ class RichupGame {
         houseEl.innerHTML = '';
       }
 
-      const priceEl = document.getElementById(`price-tag-tile-${tile.id}`);
       if (priceEl && (tile.type === 'property' || tile.type === 'railroad' || tile.type === 'utility')) {
         if (state.owner && playersById[state.owner]) {
           const owner = playersById[state.owner];
@@ -1650,14 +1672,18 @@ class RichupGame {
           } else {
             // 0 houses, 0 shops: restore original price pill
             priceEl.className = 'richup-price-tag';
-            priceEl.style.backgroundColor = '';
+            priceEl.style.backgroundColor = owner.color;
+            priceEl.style.color = '#ffffff';
+            priceEl.style.borderColor = owner.color;
             priceEl.style.display = tile.price ? 'inline-flex' : 'none';
             priceEl.textContent = tile.price ? `${tile.price}$` : '';
           }
         } else {
           // Unowned: restore original price pill
           priceEl.className = 'richup-price-tag';
-          priceEl.style.backgroundColor = '';
+          priceEl.style.backgroundColor = '#ffffff';
+          priceEl.style.color = '#2e1b10';
+          priceEl.style.borderColor = 'rgba(119, 65, 32, 0.2)';
           priceEl.style.display = tile.price ? 'inline-flex' : 'none';
           priceEl.textContent = tile.price ? `${tile.price}$` : '';
         }
@@ -1693,8 +1719,11 @@ class RichupGame {
         token.className = 'player-token token-spawn';
         token.innerHTML = `<span class="token-emoji">${p.avatar}</span>`;
       }
-      token.style.borderColor = p.color;
+      const darkBorder = darkenColor(p.color, 0.35);
+      token.style.backgroundColor = p.color;
+      token.style.borderColor = darkBorder;
       token.style.setProperty('--pcolor', p.color);
+      token.style.setProperty('--pdark', darkBorder);
       token.title = `${p.name} (${p.cash < 0 ? `-$${Math.abs(p.cash)}` : `$${p.cash}`})`;
 
       // Disconnect status badge over token on the board
@@ -2157,7 +2186,13 @@ class RichupGame {
               } else if (tile.type === 'railroad') {
                 statusBadge = '<span style="color:#cbd5e1;">Rent: $25-$200</span>';
               } else if (tile.type === 'utility') {
-                statusBadge = '<span style="color:#cbd5e1;">Rent: 4x/10x Dice</span>';
+                const totalUtil = (this.boardData && this.boardData.color_groups && this.boardData.color_groups.utility)
+                  ? this.boardData.color_groups.utility.tiles.length : 2;
+                const numUtil = p.properties ? p.properties.filter(id => this.boardData.tiles[id] && this.boardData.tiles[id].type === 'utility').length : 0;
+                const currentMult = numUtil >= 3 ? 15 : (numUtil === 2 ? 10 : (numUtil === 1 ? 4 : 0));
+                statusBadge = currentMult > 0
+                  ? `<span style="color:#22c55e;font-weight:700;">${currentMult}× Dice</span>`
+                  : `<span style="color:#cbd5e1;">Rent: 4x/10x${totalUtil >= 3 ? '/15x' : ''} Dice</span>`;
               } else {
                 statusBadge = '<span style="color:#cbd5e1;">Rent: $0</span>';
               }
@@ -2194,7 +2229,7 @@ class RichupGame {
 
               <div class="player-card-top">
                 <div class="player-info-left">
-                  <div class="player-avatar-small" style="border-color:${p.color}">${p.avatar}</div>
+                  <div class="player-avatar-small" style="background-color:${p.color};border-color:${darkenColor(p.color, 0.35)};">${p.avatar}</div>
                   <div class="player-name-col">
                     <div class="player-name-text">
                       ${p.name}
@@ -2329,7 +2364,8 @@ class RichupGame {
     nameEl.innerText = `${p.name}'s Financial Profile`;
     if (avatarEl) {
       avatarEl.innerText = p.avatar;
-      avatarEl.style.borderColor = p.color;
+      avatarEl.style.backgroundColor = p.color;
+      avatarEl.style.borderColor = darkenColor(p.color, 0.35);
     }
 
     // Render properties grid
@@ -2346,14 +2382,22 @@ class RichupGame {
           rentDisplay = '<span style="color:#f87171;font-weight:700;">Mortgaged ($0)</span>';
         } else if (p.in_jail && this.gameState.settings && this.gameState.settings.no_rent_in_prison) {
           rentDisplay = '<span style="color:#f87171;font-weight:700;">$0 (In Prison)</span>';
+        } else if (tile.type === 'utility') {
+          const numUtil = p.properties ? p.properties.filter(id => this.boardData.tiles[id] && this.boardData.tiles[id].type === 'utility').length : 0;
+          const mult = numUtil >= 3 ? 15 : (numUtil === 2 ? 10 : 4);
+          rentDisplay = `<span style="color:#34d399;font-weight:700;">${mult}× Dice Roll</span>`;
+        } else if (tile.type === 'railroad') {
+          const numR = p.properties ? p.properties.filter(id => this.boardData.tiles[id] && this.boardData.tiles[id].type === 'railroad').length : 0;
+          const rRent = numR === 1 ? 25 : (numR === 2 ? 50 : (numR === 3 ? 100 : (numR >= 4 ? 200 : 25)));
+          rentDisplay = `<span style="color:#34d399;font-weight:700;">$${rRent}</span>`;
         } else if (state.houses === 5) {
-          rentDisplay = `<span style="color:#34d399;font-weight:700;">$${tile.rent[5]} (Hotel)</span>`;
+          rentDisplay = `<span style="color:#34d399;font-weight:700;">$${tile.rent ? tile.rent[5] : 0} (Hotel)</span>`;
         } else if (state.houses > 0) {
-          rentDisplay = `<span style="color:#34d399;font-weight:700;">$${tile.rent[state.houses]} (🏠×${state.houses})</span>`;
+          rentDisplay = `<span style="color:#34d399;font-weight:700;">$${tile.rent ? tile.rent[state.houses] : 0} (🏠×${state.houses})</span>`;
         } else if (p.monopolies && p.monopolies.includes(tile.group) && this.gameState.settings && this.gameState.settings.double_rent_full_set) {
-          rentDisplay = `<span style="color:#fbbf24;font-weight:700;">$${tile.rent[0] * 2} (x2 Full Set)</span>`;
+          rentDisplay = `<span style="color:#fbbf24;font-weight:700;">$${tile.rent ? tile.rent[0] * 2 : 0} (x2 Full Set)</span>`;
         } else {
-          rentDisplay = `<span style="color:#cbd5e1;font-weight:700;">$${tile.rent ? tile.rent[0] : 25}</span>`;
+          rentDisplay = `<span style="color:#cbd5e1;font-weight:700;">$${tile.rent ? tile.rent[0] : 0}</span>`;
         }
 
         return `
@@ -2449,7 +2493,7 @@ class RichupGame {
 
     grid.innerHTML = this.gameState.players.map(p => `
       <div class="setup-player-pill" style="border-color:${p.color};" title="${p.name} (${p.is_bot ? 'Bot' : (p.id === this.gameState.host_id ? 'Host' : 'Player')})">
-        <span class="avatar">${p.avatar}</span>
+        <span class="avatar" style="background-color:${p.color};border-color:${darkenColor(p.color, 0.35)};">${p.avatar}</span>
         <span>${p.name}</span>
         ${this.isHost && p.id !== this.playerId ? `
           <button type="button" class="setup-player-kick" onclick="event.stopPropagation(); game.kickPlayer('${p.id}')" title="Kick">✕</button>
@@ -2568,16 +2612,34 @@ class RichupGame {
         </table>
       `;
     } else if (tile.type === 'utility') {
+      const totalInGroup = (tile.group && this.boardData.color_groups && this.boardData.color_groups[tile.group])
+        ? this.boardData.color_groups[tile.group].tiles.length
+        : this.boardData.tiles.filter(t => t.type === 'utility').length;
       const numUtilities = owner ? owner.properties.filter(id => this.boardData.tiles[id] && this.boardData.tiles[id].type === 'utility').length : 0;
+
+      let utilityRows = `
+        <tr class="${!isMortgaged && numUtilities === 1 ? 'current-rent-highlight' : ''}">
+          <td>Rent with 1 Utility</td>
+          <td>4× Dice Roll</td>
+        </tr>
+        <tr class="${!isMortgaged && numUtilities === 2 ? 'current-rent-highlight' : ''}">
+          <td>Rent with 2 Utilities</td>
+          <td>10× Dice Roll</td>
+        </tr>
+      `;
+      if (totalInGroup >= 3) {
+        utilityRows += `
+          <tr class="${!isMortgaged && numUtilities >= 3 ? 'current-rent-highlight' : ''}">
+            <td>Rent with 3 Utilities</td>
+            <td>15× Dice Roll</td>
+          </tr>
+        `;
+      }
+
       rentSchedule = `
-        <div style="font-size:0.8rem;color:#4b5563;margin-bottom:12px;line-height:1.4;">
-          <div style="padding:4px 6px;border-radius:4px;${!isMortgaged && numUtilities === 1 ? 'background:rgba(34,197,94,0.16);font-weight:700;color:#15803d;' : ''}">
-            If one Utility is owned, rent is 4 times dice roll.${!isMortgaged && numUtilities === 1 ? ' ◀ Current' : ''}
-          </div>
-          <div style="padding:4px 6px;border-radius:4px;margin-top:4px;${!isMortgaged && numUtilities >= 2 ? 'background:rgba(34,197,94,0.16);font-weight:700;color:#15803d;' : ''}">
-            If both Utilities are owned, rent is 10 times dice roll.${!isMortgaged && numUtilities >= 2 ? ' ◀ Current' : ''}
-          </div>
-        </div>
+        <table class="deed-rent-table">
+          ${utilityRows}
+        </table>
       `;
     }
 
@@ -3672,7 +3734,7 @@ class RichupGame {
             <div class="lobby-player-card" style="flex-direction:row;justify-content:space-between;padding:10px 14px;">
               <div style="display:flex;align-items:center;gap:10px;">
                 <span style="font-weight:800;color:${idx === 0 ? '#fbbf24' : '#94a3b8'};">#${idx + 1}</span>
-                <span style="font-size:1.2rem;">${p.avatar}</span>
+                <span class="player-avatar-small" style="width:34px;height:34px;font-size:1.25rem;background-color:${p.color};border-color:${darkenColor(p.color, 0.35)};">${p.avatar}</span>
                 <span style="font-weight:700;">${p.name}</span>
               </div>
               <div style="text-align:right;">
