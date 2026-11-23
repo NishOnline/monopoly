@@ -189,12 +189,47 @@ class RichupGame {
     // Avatar pickers
     document.querySelectorAll('.avatar-opt').forEach(opt => {
       opt.addEventListener('click', () => {
-        document.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-        this.selectedAvatar = opt.getAttribute('data-avatar');
-        this.updateProfile();
+        if (opt.classList.contains('avatar-add-btn')) return;
+        this.selectAvatar(opt.getAttribute('data-avatar'));
       });
     });
+
+    // Custom avatar + button and modal event listeners
+    document.querySelectorAll('.btn-add-custom-avatar').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openCustomAvatarModal();
+      });
+    });
+
+    const customAvatarInput = document.getElementById('input-custom-avatar');
+    if (customAvatarInput) {
+      customAvatarInput.addEventListener('input', () => {
+        const char = this.extractFirstGrapheme(customAvatarInput.value);
+        this.updateCustomAvatarPreview(char);
+      });
+      customAvatarInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.applyCustomAvatar();
+        }
+      });
+    }
+
+    document.querySelectorAll('.quick-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-val');
+        if (customAvatarInput) customAvatarInput.value = val;
+        this.updateCustomAvatarPreview(val);
+      });
+    });
+
+    const saveCustomAvatarBtn = document.getElementById('btn-save-custom-avatar');
+    if (saveCustomAvatarBtn) {
+      saveCustomAvatarBtn.addEventListener('click', () => {
+        this.applyCustomAvatar();
+      });
+    }
 
     // Color pickers
     document.querySelectorAll('.color-opt').forEach(opt => {
@@ -203,10 +238,7 @@ class RichupGame {
           this.showActionReasonPopup('Color Already Taken', 'Another player is already using this color in this room. Please select a different color.');
           return;
         }
-        document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-        this.selectedColor = opt.getAttribute('data-color');
-        this.updateProfile();
+        this.selectColor(opt.getAttribute('data-color'));
       });
     });
 
@@ -645,6 +677,109 @@ class RichupGame {
     const n2 = document.getElementById('input-join-name');
     if (n1) n1.value = this.playerName;
     if (n2) n2.value = this.playerName;
+
+    const savedAvatar = localStorage.getItem('richup_player_avatar');
+    if (savedAvatar) {
+      this.selectedAvatar = savedAvatar;
+      this.selectAvatar(savedAvatar);
+    }
+
+    const savedColor = localStorage.getItem('richup_player_color');
+    if (savedColor) {
+      this.selectedColor = savedColor;
+      this.selectColor(savedColor);
+    }
+  }
+
+  extractFirstGrapheme(str) {
+    if (!str) return '';
+    const trimmed = str.trim();
+    if (!trimmed) return '';
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+      const iterator = segmenter.segment(trimmed)[Symbol.iterator]();
+      const first = iterator.next();
+      if (!first.done && first.value && first.value.segment) {
+        return first.value.segment;
+      }
+    }
+    return Array.from(trimmed)[0] || '';
+  }
+
+  updateCustomAvatarPreview(char) {
+    const previewChar = document.getElementById('custom-avatar-preview-char');
+    const previewToken = document.getElementById('custom-avatar-preview-token');
+    if (previewChar) previewChar.innerText = char || '🚗';
+    if (previewToken) {
+      const col = this.selectedColor || '#ef4444';
+      previewToken.style.backgroundColor = col;
+      previewToken.style.borderColor = darkenColor(col, 0.35);
+    }
+  }
+
+  openCustomAvatarModal() {
+    const input = document.getElementById('input-custom-avatar');
+    const currentAvatar = this.selectedAvatar || '🚗';
+    if (input) {
+      input.value = currentAvatar;
+      setTimeout(() => input.focus(), 80);
+    }
+    this.updateCustomAvatarPreview(currentAvatar);
+    this.openModal('modal-custom-avatar');
+  }
+
+  applyCustomAvatar() {
+    const input = document.getElementById('input-custom-avatar');
+    let char = this.extractFirstGrapheme(input ? input.value : '');
+    if (!char) char = '🚗';
+    this.selectAvatar(char);
+    this.closeModal('modal-custom-avatar');
+    this.showToast(`Token avatar set to ${char}! ✨`);
+  }
+
+  selectAvatar(avatarChar) {
+    if (!avatarChar) return;
+    this.selectedAvatar = avatarChar;
+    localStorage.setItem('richup_player_avatar', avatarChar);
+
+    document.querySelectorAll('.avatar-selector').forEach(selector => {
+      let foundOpt = selector.querySelector(`.avatar-opt[data-avatar="${avatarChar}"]`);
+      if (!foundOpt) {
+        const addBtn = selector.querySelector('.avatar-add-btn');
+        foundOpt = document.createElement('div');
+        foundOpt.className = 'avatar-opt';
+        foundOpt.setAttribute('data-avatar', avatarChar);
+        foundOpt.innerText = avatarChar;
+        foundOpt.title = `Custom: ${avatarChar}`;
+        foundOpt.addEventListener('click', () => {
+          this.selectAvatar(avatarChar);
+        });
+        if (addBtn) {
+          selector.insertBefore(foundOpt, addBtn);
+        } else {
+          selector.appendChild(foundOpt);
+        }
+      }
+
+      selector.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('selected'));
+      foundOpt.classList.add('selected');
+    });
+
+    this.updateProfile();
+  }
+
+  selectColor(color) {
+    if (!color) return;
+    this.selectedColor = color;
+    localStorage.setItem('richup_player_color', color);
+    document.querySelectorAll('.color-opt').forEach(opt => {
+      if (opt.getAttribute('data-color') === color) {
+        opt.classList.add('selected');
+      } else {
+        opt.classList.remove('selected');
+      }
+    });
+    this.updateProfile();
   }
 
   checkUrlForRoom() {
@@ -2491,15 +2626,18 @@ class RichupGame {
     const grid = document.getElementById('lobby-players-grid');
     if (!grid) return;
 
-    grid.innerHTML = this.gameState.players.map(p => `
-      <div class="setup-player-pill" style="border-color:${p.color};" title="${p.name} (${p.is_bot ? 'Bot' : (p.id === this.gameState.host_id ? 'Host' : 'Player')})">
+    grid.innerHTML = this.gameState.players.map(p => {
+      const isSelf = p.id === this.playerId;
+      return `
+      <div class="setup-player-pill ${isSelf ? 'is-self' : ''}" style="border-color:${p.color};" title="${isSelf ? 'You - Click to change avatar icon' : `${p.name} (${p.is_bot ? 'Bot' : (p.id === this.gameState.host_id ? 'Host' : 'Player')})`}" ${isSelf ? 'onclick="game.openCustomAvatarModal()"' : ''}>
         <span class="avatar" style="background-color:${p.color};border-color:${darkenColor(p.color, 0.35)};">${p.avatar}</span>
-        <span>${p.name}</span>
+        <span>${p.name} ${isSelf ? '<span style="font-size:0.75rem;opacity:0.8;" title="Change icon">✏️</span>' : ''}</span>
         ${this.isHost && p.id !== this.playerId ? `
           <button type="button" class="setup-player-kick" onclick="event.stopPropagation(); game.kickPlayer('${p.id}')" title="Kick">✕</button>
         ` : ''}
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     // Update color picker options taking into account colors selected by others in this room
     const usedColors = new Set(this.gameState.players.filter(p => p.id !== this.playerId).map(p => p.color));
@@ -3302,6 +3440,13 @@ class RichupGame {
   renderChatMessages() {
     if (!this.gameState) return;
     const messages = this.gameState.chat_messages || [];
+
+    // Play notification sound when a new chat message arrives
+    if (this.previousChatCount !== undefined && messages.length > this.previousChatCount) {
+      if (window.soundEngine && typeof window.soundEngine.chatMessage === 'function') {
+        window.soundEngine.chatMessage();
+      }
+    }
 
     // Check for unread indicator when not currently viewing the chat tab in-game
     if (messages.length > (this.lastSeenChatCount || 0)) {

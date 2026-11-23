@@ -16,6 +16,12 @@ from aiohttp import web, WSMsgType
 
 from game.engine import GameRoom, AVATARS, COLORS
 from game.bot_ai import BotAI, BOT_NAMES
+
+def is_valid_avatar(avatar):
+    if not isinstance(avatar, str):
+        return False
+    avatar = avatar.strip()
+    return 1 <= len(avatar) <= 12
 from game.board_data import BOARD_TILES, COLOR_GROUPS, MAPS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -109,8 +115,8 @@ async def handle_ws(request):
                     player_id = str(uuid.uuid4())[:8]
 
                     room = GameRoom(room_id, player_id, player_name, is_public=is_public)
-                    if data.get("avatar") and data["avatar"] in AVATARS:
-                        room.players[player_id]["avatar"] = data["avatar"]
+                    if data.get("avatar") and is_valid_avatar(data["avatar"]):
+                        room.players[player_id]["avatar"] = data["avatar"].strip()[:12]
                     if data.get("color") and data["color"] in COLORS:
                         room.players[player_id]["color"] = data["color"]
 
@@ -150,8 +156,8 @@ async def handle_ws(request):
                         p["connected"] = True
                         p["disconnect_deadline"] = None
                         p["name"] = player_name
-                        if data.get("avatar"):
-                            p["avatar"] = data["avatar"]
+                        if data.get("avatar") and is_valid_avatar(data["avatar"]):
+                            p["avatar"] = data["avatar"].strip()[:12]
                         if data.get("color"):
                             p["color"] = data["color"]
                         room.log(f"{p['name']} reconnected to the game! ⚡", "info", "🔌", player_id)
@@ -185,8 +191,8 @@ async def handle_ws(request):
                                 "message": "Room is full."
                             }))
                             continue
-                        if data.get("avatar") and data["avatar"] in AVATARS:
-                            room.players[player_id]["avatar"] = data["avatar"]
+                        if data.get("avatar") and is_valid_avatar(data["avatar"]):
+                            room.players[player_id]["avatar"] = data["avatar"].strip()[:12]
                         if data.get("color"):
                             req_color = data["color"]
                             used_colors = {p["color"] for pid, p in room.players.items() if pid != player_id}
@@ -230,8 +236,8 @@ async def handle_ws(request):
                                 }))
                             elif req_color in COLORS:
                                 p["color"] = req_color
-                        if "avatar" in data and data["avatar"] in AVATARS:
-                            p["avatar"] = data["avatar"]
+                        if "avatar" in data and is_valid_avatar(data["avatar"]):
+                            p["avatar"] = data["avatar"].strip()[:12]
                         if "ready" in data:
                             p["ready"] = bool(data["ready"])
                         await broadcast_room(current_room_id)
@@ -693,6 +699,7 @@ def init_app():
         ts = str(int(time.time()))
         html = re.sub(r'style\.css(?:\?v=[^"\'\s>]*)?', f'style.css?v={ts}', html)
         html = re.sub(r'game\.js(?:\?v=[^"\'\s>]*)?', f'game.js?v={ts}', html)
+        html = re.sub(r'audio\.js(?:\?v=[^"\'\s>]*)?', f'audio.js?v={ts}', html)
         return web.Response(
             text=html,
             content_type="text/html",

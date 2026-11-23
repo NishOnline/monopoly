@@ -331,6 +331,29 @@ class SoundEngine {
         osc.start(now + 0.12);
         osc.stop(now + 0.46);
     }
+
+    chatMessage() {
+        if (!this.enabled) return;
+        this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+        const now = this.ctx.currentTime;
+        // Pleasant, clear two-tone chime for incoming chat messages (F5 698.46Hz -> C6 1046.50Hz)
+        const notes = [698.46, 1046.50];
+        notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.16);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.17);
+        });
+    }
 }
 
 window.soundEngine = new SoundEngine();
