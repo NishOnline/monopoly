@@ -119,6 +119,10 @@ async def handle_ws(request):
                         room.players[player_id]["avatar"] = data["avatar"].strip()[:12]
                     if data.get("color") and data["color"] in COLORS:
                         room.players[player_id]["color"] = data["color"]
+                    if data.get("bot_difficulty"):
+                        diff = str(data["bot_difficulty"]).lower()
+                        if diff in ["conscious", "balanced", "determined"]:
+                            room.settings["bot_difficulty"] = diff
 
                     rooms[room_id] = room
                     room_bots[room_id] = BotAI(room)
@@ -149,21 +153,60 @@ async def handle_ws(request):
                         }))
                         continue
 
-                    # Check if reconnecting
+                    # Check if reconnecting by player_id OR matching existing non-bot player name in this room
+                    reconnect_player_id = None
                     if existing_id and existing_id in room.players:
-                        player_id = existing_id
+                        reconnect_player_id = existing_id
+                    elif player_name:
+                        norm_name = player_name.strip().lower()
+                        for pid, p in room.players.items():
+                            if not p.get("is_bot") and p.get("name", "").strip().lower() == norm_name:
+                                reconnect_player_id = pid
+                                break
+
+                    if reconnect_player_id:
+                        player_id = reconnect_player_id
                         p = room.players[player_id]
                         p["connected"] = True
                         p["disconnect_deadline"] = None
-                        p["name"] = player_name
+                        if player_name:
+                            p["name"] = player_name
                         if data.get("avatar") and is_valid_avatar(data["avatar"]):
                             p["avatar"] = data["avatar"].strip()[:12]
-                        if data.get("color"):
+                        if data.get("color") and data["color"] in COLORS:
                             p["color"] = data["color"]
+
+                        # Close and remove any old stale lingering websockets for this player in this room
+                        for old_sock, meta in list(socket_meta.items()):
+                            if old_sock != ws and meta.get("room_id") == room_id and meta.get("player_id") == player_id:
+                                socket_meta.pop(old_sock, None)
+                                if room_id in room_sockets:
+                                    room_sockets[room_id].discard(old_sock)
+                                try:
+                                    await old_sock.close()
+                                except Exception:
+                                    pass
+
+                        current_room_id = room_id
+                        current_player_id = player_id
+                        socket_meta[ws] = {"room_id": room_id, "player_id": player_id, "is_spectator": False}
+                        if room_id not in room_sockets:
+                            room_sockets[room_id] = set()
+                        room_sockets[room_id].add(ws)
+
                         room.log(f"{p['name']} reconnected to the game! ⚡", "info", "🔌", player_id)
+                        await ws.send_str(json.dumps({
+                            "type": "JOINED_SUCCESS",
+                            "roomId": room_id,
+                            "playerId": player_id,
+                            "isHost": (player_id == room.host_id),
+                            "isSpectator": False
+                        }))
+                        await broadcast_room(room_id)
+                        continue
                     else:
                         if room.state != "LOBBY":
-                            # Game already in progress: join as live spectator!
+                            # Game already in progress and player not recognized: join as live spectator!
                             player_id = "spec_" + str(uuid.uuid4())[:6]
                             current_room_id = room_id
                             current_player_id = player_id
@@ -202,7 +245,7 @@ async def handle_ws(request):
 
                     current_room_id = room_id
                     current_player_id = player_id
-                    socket_meta[ws] = {"room_id": room_id, "player_id": player_id}
+                    socket_meta[ws] = {"room_id": room_id, "player_id": player_id, "is_spectator": False}
                     if room_id not in room_sockets:
                         room_sockets[room_id] = set()
                     room_sockets[room_id].add(ws)
@@ -211,7 +254,8 @@ async def handle_ws(request):
                         "type": "JOINED_SUCCESS",
                         "roomId": room_id,
                         "playerId": player_id,
-                        "isHost": (player_id == room.host_id)
+                        "isHost": (player_id == room.host_id),
+                        "isSpectator": False
                     }))
                     await broadcast_room(room_id)
 
@@ -244,7 +288,12 @@ async def handle_ws(request):
 
                 elif action == "UPDATE_SETTINGS":
                     if current_player_id == room.host_id and room.state == "LOBBY":
-                        room.update_settings(data.get("settings", {}))
+                        new_settings = data.get("settings", {})
+                        if "bot_difficulty" in new_settings:
+                            diff = str(new_settings["bot_difficulty"]).lower().strip()
+                            if diff in ["conscious", "balanced", "determined"]:
+                                room.settings["bot_difficulty"] = diff
+                        room.update_settings(new_settings)
                         await broadcast_room(current_room_id)
 
                 elif action == "ADD_BOT":
@@ -402,10 +451,11 @@ async def handle_ws(request):
                         if trade_id:
                             await broadcast_room(current_room_id)
                         else:
+                            err_msg = getattr(room, "last_trade_error", None) or "Cannot propose trade: You cannot trade properties with houses or hotels on their color group, or you have insufficient cash."
                             await ws.send_str(json.dumps({
                                 "type": "ACTION_ERROR",
                                 "title": "Cannot Propose Trade",
-                                "message": "Cannot propose trade: You cannot trade properties with houses or hotels on their color group, or you have insufficient cash."
+                                "message": err_msg
                             }))
 
                 elif action == "RESPOND_TRADE":
@@ -430,10 +480,11 @@ async def handle_ws(request):
                         if new_trade_id:
                             await broadcast_room(current_room_id)
                         else:
+                            err_msg = getattr(room, "last_trade_error", None) or "Cannot negotiate trade: You cannot trade properties with houses or hotels on their color group, or you have insufficient cash."
                             await ws.send_str(json.dumps({
                                 "type": "ACTION_ERROR",
                                 "title": "Cannot Negotiate Trade",
-                                "message": "Cannot negotiate trade: You cannot trade properties with houses or hotels on their color group, or you have insufficient cash."
+                                "message": err_msg
                             }))
 
                 elif action == "RESOLVE_DEBT":
@@ -475,8 +526,21 @@ async def handle_ws(request):
                         await broadcast_room(current_room_id)
 
                 elif action == "SEND_REACTION":
-                    emoji = data.get("emoji", "😂")
+                    now = time.time()
                     meta = socket_meta.get(ws, {})
+                    reaction_history = meta.setdefault("reaction_times", [])
+                    reaction_history[:] = [t for t in reaction_history if now - t < 3.0]
+                    # Disallow more than 3 reactions per 3s or faster than 0.7s
+                    if len(reaction_history) >= 3 or (reaction_history and now - reaction_history[-1] < 0.7):
+                        await ws.send_str(json.dumps({
+                            "type": "ACTION_ERROR",
+                            "title": "Slow Down",
+                            "message": "Reaction rate limit reached. Please wait a moment."
+                        }))
+                        continue
+                    reaction_history.append(now)
+
+                    emoji = str(data.get("emoji", "😂")).strip()[:8]
                     p = room.players.get(current_player_id)
                     sender_name = p["name"] if p else meta.get("player_name", "Spectator")
                     sender_avatar = p["avatar"] if p else meta.get("avatar", "👁️")
@@ -494,8 +558,38 @@ async def handle_ws(request):
                             pass
 
                 elif action == "SEND_CHAT":
-                    text = data.get("text", "")
+                    now = time.time()
                     meta = socket_meta.get(ws, {})
+                    chat_history = meta.setdefault("chat_times", [])
+                    chat_history[:] = [t for t in chat_history if now - t < 5.0]
+                    # Disallow more than 3 chats per 5s or faster than 0.9s
+                    if len(chat_history) >= 3 or (chat_history and now - chat_history[-1] < 0.9):
+                        await ws.send_str(json.dumps({
+                            "type": "ACTION_ERROR",
+                            "title": "Chat Cooldown",
+                            "message": "You are sending messages too quickly. Please wait a moment."
+                        }))
+                        continue
+
+                    raw_text = str(data.get("text", "")).strip()
+                    if not raw_text:
+                        continue
+                    # Curb duplicate message spam within 5 seconds
+                    last_text = meta.get("last_chat_text")
+                    last_text_time = meta.get("last_chat_time", 0)
+                    if raw_text == last_text and (now - last_text_time < 5.0):
+                        await ws.send_str(json.dumps({
+                            "type": "ACTION_ERROR",
+                            "title": "Duplicate Message",
+                            "message": "Please do not repeat the exact same message."
+                        }))
+                        continue
+
+                    chat_history.append(now)
+                    meta["last_chat_text"] = raw_text
+                    meta["last_chat_time"] = now
+
+                    text = raw_text[:200]
                     p = room.players.get(current_player_id)
                     sender_name = p["name"] if p else meta.get("player_name", "Spectator")
                     sender_avatar = p["avatar"] if p else meta.get("avatar", "👁️")
@@ -509,6 +603,18 @@ async def handle_ws(request):
                     )
                     if msg_obj:
                         await broadcast_room(current_room_id)
+
+                elif action == "CLIENT_DISCONNECT":
+                    # Instant client-initiated disconnect notification before tab reload/close
+                    if current_room_id and current_player_id and room:
+                        meta = socket_meta.get(ws, {})
+                        if not meta.get("is_spectator"):
+                            p = room.players.get(current_player_id)
+                            if p and room.state == "PLAYING" and not p.get("is_bot") and not p.get("is_bankrupt"):
+                                p["connected"] = False
+                                p["disconnect_deadline"] = time.time() + 100.0
+                                room.log(f"⚠️ {p['name']} disconnected! 100s timer started.", "warning", "🔌", current_player_id)
+                                await broadcast_room(current_room_id)
 
                 elif action == "LEAVE_ROOM":
                     room.remove_player(current_player_id)
@@ -534,7 +640,12 @@ async def handle_ws(request):
                 room_sockets[rid].discard(ws)
             room = rooms.get(rid)
             if room:
-                if not meta.get("is_spectator"):
+                # Check if another active socket is already connected for this player (e.g. fast tab reload)
+                has_active_socket = any(
+                    s in room_sockets.get(rid, set()) and socket_meta.get(s, {}).get("player_id") == pid
+                    for s in list(room_sockets.get(rid, set()))
+                )
+                if not meta.get("is_spectator") and not has_active_socket:
                     p = room.players.get(pid)
                     if p:
                         if room.state == "PLAYING" and not p.get("is_bot") and not p.get("is_bankrupt"):
@@ -617,6 +728,23 @@ async def game_tick_loop():
                 if bot_ai:
                     if bot_ai.tick():
                         updated = True
+
+                # 4. Broadcast pending bot reactions
+                if getattr(room, "pending_reactions", None):
+                    for r_item in room.pending_reactions:
+                        msg_str = json.dumps({
+                            "type": "REACTION",
+                            "emoji": r_item["emoji"],
+                            "senderId": r_item["senderId"],
+                            "senderName": r_item["senderName"],
+                            "avatar": r_item.get("avatar", "🤖")
+                        })
+                        for s in list(room_sockets.get(room_id, [])):
+                            try:
+                                await s.send_str(msg_str)
+                            except Exception:
+                                pass
+                    room.pending_reactions = []
 
                 if updated:
                     await broadcast_room(room_id)

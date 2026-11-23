@@ -10,7 +10,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=20261121_8">
+  <link rel="stylesheet" href="/css/style.css?v=20261124_01">
 </head>
 
 <body>
@@ -52,37 +52,42 @@
     <!-- Screen 1: Welcome & Lobby Screen -->
     <section class="screen active" id="screen-welcome">
       <div id="lobby-screen">
-        <!-- Welcome / Create & Join Card -->
-        <div id="lobby-welcome-box" class="lobby-box">
-          <div class="lobby-header">
-            <h1>Play Richup Online</h1>
-            <p>Fast, competitive multiplayer property trading game with friends and bots</p>
-          </div>
-
-          <!-- Initial Create / Join View -->
-          <div id="lobby-welcome-view">
-            <div class="richup-setup-header" style="margin-bottom:18px;">
+        <!-- Welcome / Create & Join Card - Richup Theme -->
+        <div id="lobby-welcome-box" class="richup-setup-container richup-menu-container">
+          <!-- Top 3D Branding & Navigation Bar -->
+          <div class="richup-setup-topbar">
+            <button type="button" class="richup-top-btn" id="btn-login-main">LOG IN</button>
+            <div class="richup-setup-header">
               <div class="richup-3d-title">Richup.io</div>
               <div class="richup-setup-subtitle">MULTIPLAYER MONOPOLY</div>
             </div>
+            <div class="richup-top-actions">
+              <button type="button" class="richup-top-btn" id="btn-sound-main"
+                onclick="document.getElementById('btn-sound-toggle').click()" title="Toggle Sound">🔊</button>
+              <button type="button" class="richup-top-btn" id="btn-how-to-play-main"
+                onclick="document.getElementById('btn-rules').click()" title="Game Rules">RULES ℹ️</button>
+            </div>
+          </div>
 
-            <div class="lobby-tabs">
-              <button class="lobby-tab active" data-target="tab-create">Create Game</button>
-              <button class="lobby-tab" data-target="tab-join">Join With Code</button>
-              <button class="lobby-tab" data-target="tab-public" id="tab-btn-public">Public Rooms</button>
+          <!-- Initial Create / Join View -->
+          <div id="lobby-welcome-view" class="richup-setup-card richup-menu-card">
+            <div class="lobby-tabs richup-menu-tabs">
+              <button class="lobby-tab active" data-target="tab-create">CREATE GAME</button>
+              <button class="lobby-tab" data-target="tab-join">JOIN WITH CODE</button>
+              <button class="lobby-tab" data-target="tab-public" id="tab-btn-public">PUBLIC ROOMS</button>
             </div>
 
-            <div class="lobby-body">
+            <div class="lobby-body richup-menu-body">
               <!-- Create Game Pane -->
               <div class="tab-pane active" id="tab-create">
-                <div class="form-group">
-                  <label for="input-player-name">Your Nickname</label>
-                  <input type="text" id="input-player-name" class="input-text" placeholder="Enter your name"
-                    maxlength="16" value="Tycoon">
+                <div class="form-group setup-form-group">
+                  <label for="input-player-name" class="setup-section-heading">YOUR NICKNAME</label>
+                  <input type="text" id="input-player-name" class="input-text richup-input"
+                    placeholder="Enter your name" maxlength="16" value="Tycoon">
                 </div>
 
-                <div class="form-group">
-                  <label>Choose Token Avatar</label>
+                <div class="form-group setup-form-group">
+                  <label class="setup-section-heading">CHOOSE TOKEN AVATAR</label>
                   <div class="avatar-selector">
                     <div class="avatar-opt selected" data-avatar="🚗">🚗</div>
                     <div class="avatar-opt" data-avatar="🚀">🚀</div>
@@ -92,12 +97,13 @@
                     <div class="avatar-opt" data-avatar="⛵">⛵</div>
                     <div class="avatar-opt" data-avatar="💎">💎</div>
                     <div class="avatar-opt" data-avatar="👑">👑</div>
-                    <div class="avatar-opt avatar-add-btn btn-add-custom-avatar" id="btn-add-custom-avatar" title="Add Custom Icon">+</div>
+                    <div class="avatar-opt avatar-add-btn btn-add-custom-avatar" id="btn-add-custom-avatar"
+                      title="Add Custom Icon">+</div>
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label>Choose Player Color</label>
+                <div class="form-group setup-form-group">
+                  <label class="setup-section-heading">CHOOSE PLAYER COLOR</label>
                   <div class="color-selector">
                     <div class="color-opt selected" style="background-color: #ef4444;" data-color="#ef4444"></div>
                     <div class="color-opt" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
@@ -110,34 +116,37 @@
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label>Game Visibility</label>
-                  <div class="privacy-toggle-group" id="privacy-toggle-create">
-                    <button type="button" class="privacy-btn active" id="btn-privacy-private" data-val="false">
-                      🔒 Private (Default)
+                <div class="form-group setup-form-group">
+                  <label class="setup-section-heading">GAME VISIBILITY</label>
+                  <div class="richup-segmented-pill privacy-toggle-group" id="privacy-toggle-create">
+                    <button type="button" class="privacy-btn seg-opt active" id="btn-privacy-private" data-val="false"
+                      data-value="false">
+                      🔒 Private (Invite Only)
                     </button>
-                    <button type="button" class="privacy-btn" id="btn-privacy-public" data-val="true">
-                      🌐 Public (Listed)
+                    <span class="seg-divider">/</span>
+                    <button type="button" class="privacy-btn seg-opt" id="btn-privacy-public" data-val="true"
+                      data-value="true">
+                      🌐 Public (Listed in Browser)
                     </button>
                   </div>
                   <input type="hidden" id="input-room-public" value="false">
                 </div>
 
-                <button class="btn-primary" id="btn-create-room">
-                  <span>Create Private Room</span> 🚀
+                <button class="btn-richup-main-action" id="btn-create-room">
+                  <span>Create Game Room</span> 🚀
                 </button>
               </div>
 
               <!-- Join Game Pane -->
               <div class="tab-pane" id="tab-join">
-                <div class="form-group">
-                  <label for="input-join-name">Your Nickname</label>
-                  <input type="text" id="input-join-name" class="input-text" placeholder="Enter your name"
+                <div class="form-group setup-form-group">
+                  <label for="input-join-name" class="setup-section-heading">YOUR NICKNAME</label>
+                  <input type="text" id="input-join-name" class="input-text richup-input" placeholder="Enter your name"
                     maxlength="16" value="Tycoon">
                 </div>
 
-                <div class="form-group">
-                  <label>Choose Token Avatar</label>
+                <div class="form-group setup-form-group">
+                  <label class="setup-section-heading">CHOOSE TOKEN AVATAR</label>
                   <div class="avatar-selector">
                     <div class="avatar-opt selected" data-avatar="🚗">🚗</div>
                     <div class="avatar-opt" data-avatar="🚀">🚀</div>
@@ -151,8 +160,8 @@
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label>Choose Player Color</label>
+                <div class="form-group setup-form-group">
+                  <label class="setup-section-heading">CHOOSE PLAYER COLOR</label>
                   <div class="color-selector">
                     <div class="color-opt selected" style="background-color: #ef4444;" data-color="#ef4444"></div>
                     <div class="color-opt" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
@@ -165,22 +174,23 @@
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label for="input-room-code">5-Letter Room Code</label>
-                  <input type="text" id="input-room-code" class="input-text" placeholder="e.g. ABCDE" maxlength="6"
-                    style="text-transform:uppercase;font-family:monospace;letter-spacing:2px;font-weight:700;">
+                <div class="form-group setup-form-group">
+                  <label for="input-room-code" class="setup-section-heading">5-LETTER ROOM CODE</label>
+                  <input type="text" id="input-room-code" class="input-text richup-input room-code-input"
+                    placeholder="e.g. ABCDE" maxlength="6">
                 </div>
 
-                <button class="btn-primary" id="btn-join-room">
-                  <span>Join Room</span> 🚪
+                <button class="btn-richup-main-action btn-richup-join" id="btn-join-room">
+                  <span>Join Game Room</span> 🚪
                 </button>
               </div>
 
               <!-- Public Rooms Browser Pane -->
               <div class="tab-pane" id="tab-public">
                 <div class="public-rooms-header">
-                  <span class="public-rooms-title">Public Game Rooms</span>
-                  <button type="button" class="btn-refresh-rooms" id="btn-refresh-public-rooms" onclick="game.fetchPublicRooms()">🔄 Refresh</button>
+                  <span class="setup-section-heading" style="margin-bottom:0;">PUBLIC GAME ROOMS</span>
+                  <button type="button" class="richup-top-btn" id="btn-refresh-public-rooms"
+                    onclick="game.fetchOpenRooms()">🔄 Refresh</button>
                 </div>
                 <div class="public-rooms-list" id="public-rooms-list">
                   <div class="rooms-loading">Scanning for open rooms...</div>
@@ -193,200 +203,249 @@
 
       <!-- In-Room Lobby View (Once Connected) - Richup.io 1-1 Game Setup Replica -->
       <div id="room-lobby-view" style="display:none; width: 100%;">
-          <div class="richup-setup-container">
-            <!-- Top 3D Branding & Navigation Bar -->
-            <div class="richup-setup-topbar">
-              <button type="button" class="richup-top-btn" id="btn-login-dummy">LOG IN</button>
-              <div class="richup-setup-header">
-                <div class="richup-3d-title clickable-title" id="richup-logo-home" title="Return to Main Menu">Richup.io</div>
-                <div class="richup-setup-subtitle">GAME SETUP</div>
-                <!-- Room Code Copy Pill -->
-                <div class="setup-room-code-badge" id="setup-room-code-badge" onclick="game.copyRoomCode()" title="Click to copy Room Code">
-                  <span class="room-code-lbl">ROOM:</span>
-                  <span class="room-code-val" id="setup-room-code-val">----</span>
-                  <span class="btn-copy-icon">📋</span>
-                  <span class="copy-toast" id="copy-code-toast" style="display:none;">Copied!</span>
-                </div>
+        <div class="richup-setup-container">
+          <!-- Top 3D Branding & Navigation Bar -->
+          <div class="richup-setup-topbar">
+            <button type="button" class="richup-top-btn" id="btn-login-dummy">LOG IN</button>
+            <div class="richup-setup-header">
+              <div class="richup-3d-title clickable-title" id="richup-logo-home" title="Return to Main Menu">Richup.io
               </div>
-              <button type="button" class="richup-top-btn btn-back-lobby" id="btn-back-top" title="Return to Main Menu">← BACK</button>
-            </div>
-
-            <!-- Main Glassmorphic Setup Card -->
-            <div class="richup-setup-card">
-              <!-- Left Column: Sliders & Bot Action -->
-              <div class="setup-col-left">
-                <!-- Starting Cash (1000, 1500, 2000, 2500) -->
-                <div class="setup-slider-section">
-                  <div class="setup-section-heading">STARTING CASH</div>
-                  <div class="setup-stepper-row">
-                    <button type="button" class="setup-stepper-btn" id="btn-cash-minus" title="Decrease $500">−</button>
-                    <div class="setup-slider-wrapper">
-                      <input type="range" id="setting-cash" min="1000" max="2500" step="500" value="1500" class="setup-golden-slider">
-                      <div class="setup-slider-badge-wrap">
-                        <div class="setup-slider-badge" id="badge-cash-val">$1,500</div>
-                      </div>
-                    </div>
-                    <button type="button" class="setup-stepper-btn" id="btn-cash-plus" title="Increase $500">+</button>
-                  </div>
-                  <div class="setup-slider-range-labels">
-                    <span>$1,000</span>
-                    <span>$2,500</span>
-                  </div>
-                </div>
-
-                <!-- Turn Timer (Min 45s, Max 150s) -->
-                <div class="setup-slider-section">
-                  <div class="setup-section-heading">TURN TIMER</div>
-                  <div class="setup-slider-wrapper no-stepper">
-                    <input type="range" id="setting-timer-slider" min="0" max="4" step="1" value="0" class="setup-golden-slider timer-slider">
-                  </div>
-                  <div class="setup-slider-range-labels timer-ticks">
-                    <span data-idx="0" class="active">45s</span>
-                    <span data-idx="1">60s</span>
-                    <span data-idx="2">90s</span>
-                    <span data-idx="3">120s</span>
-                    <span data-idx="4">150s</span>
-                  </div>
-                  <input type="hidden" id="setting-timer" value="45">
-                </div>
-
-                <!-- Add AI Bot Button -->
-                <div class="setup-bot-action-wrap">
-                  <button type="button" class="btn-richup-add-bot" id="btn-add-bot">
-                    <span>🤖 ADD AI BOT</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Right Column: 2x3 Grid of Richup Switches -->
-              <div class="setup-col-right">
-                <div class="setup-toggles-grid">
-                  <!-- Property Auctions (Green when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">PROPERTY AUCTIONS</div>
-                    <button type="button" class="richup-pill-toggle on green" id="toggle-auction" data-setting="setting-auction" data-color="green">
-                      <span class="toggle-text">ON</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-auction" value="true">
-                  </div>
-
-                  <!-- 2x Rent on Full Set (Gold when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">2x RENT ON FULL SET</div>
-                    <button type="button" class="richup-pill-toggle on gold" id="toggle-double-rent" data-setting="setting-double-rent" data-color="gold">
-                      <span class="toggle-text">ON</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-double-rent" value="true">
-                  </div>
-
-                  <!-- Rent While in Prison (Gold when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">RENT WHILE IN PRISON</div>
-                    <button type="button" class="richup-pill-toggle on gold" id="toggle-prison-rent" data-setting="setting-prison-rent" data-color="gold">
-                      <span class="toggle-text">ON</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-prison-rent" value="true">
-                  </div>
-
-                  <!-- Mortgage Properties (Gold when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">MORTGAGE PROPERTIES</div>
-                    <button type="button" class="richup-pill-toggle on gold" id="toggle-mortgage" data-setting="setting-mortgage" data-color="gold">
-                      <span class="toggle-text">ON</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-mortgage" value="true">
-                  </div>
-
-                  <!-- Even Houses Build (Gold when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">EVEN HOUSES BUILD</div>
-                    <button type="button" class="richup-pill-toggle off red" id="toggle-even-build" data-setting="setting-even-build" data-color="gold">
-                      <span class="toggle-text">OFF</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-even-build" value="false">
-                  </div>
-
-                  <!-- Advanced Shops (Gold when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">ADVANCED SHOPS</div>
-                    <button type="button" class="richup-pill-toggle on gold" id="toggle-advanced-shops" data-setting="setting-advanced-shops" data-color="gold">
-                      <span class="toggle-text">ON</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-advanced-shops" value="true">
-                  </div>
-
-                  <!-- Random Events (Gold when ON) -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">RANDOM EVENTS</div>
-                    <button type="button" class="richup-pill-toggle on gold" id="toggle-random-events" data-setting="setting-random-events" data-color="gold">
-                      <span class="toggle-text">ON</span>
-                      <span class="toggle-knob"></span>
-                    </button>
-                    <input type="hidden" id="setting-random-events" value="true">
-                  </div>
-
-                  <!-- Board Map Selection -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">MAP</div>
-                    <div class="richup-segmented-pill" id="segmented-map">
-                      <button type="button" class="seg-opt active" data-val="classic">Classic</button>
-                      <span class="seg-divider">/</span>
-                      <button type="button" class="seg-opt" data-val="extended">Extended</button>
-                    </div>
-                    <input type="hidden" id="setting-map" value="classic">
-                  </div>
-
-                  <!-- Room Visibility -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">ROOM VISIBILITY</div>
-                    <div class="richup-segmented-pill" id="segmented-privacy">
-                      <button type="button" class="seg-opt" data-val="true">Public</button>
-                      <span class="seg-divider">/</span>
-                      <button type="button" class="seg-opt active" data-val="false">Private</button>
-                    </div>
-                    <input type="hidden" id="setting-privacy" value="false">
-                  </div>
-                </div>
+              <div class="richup-setup-subtitle">GAME SETUP</div>
+              <!-- Room Code Copy Pill -->
+              <div class="setup-room-code-badge" id="setup-room-code-badge" onclick="game.copyRoomCode()"
+                title="Click to copy Room Code">
+                <span class="room-code-lbl">ROOM:</span>
+                <span class="room-code-val" id="setup-room-code-val">----</span>
+                <span class="btn-copy-icon">📋</span>
+                <span class="copy-toast" id="copy-code-toast" style="display:none;">Copied!</span>
               </div>
             </div>
+            <button type="button" class="richup-top-btn btn-back-lobby" id="btn-back-top" title="Return to Main Menu">←
+              BACK</button>
+          </div>
 
-            <!-- Setup Bottom Action Bar -->
-            <div class="richup-setup-footer">
-              <div class="setup-footer-left">
-                <button type="button" class="richup-outline-btn btn-back-lobby" id="btn-back-setup" title="Return to Main Menu">← BACK</button>
-                <button type="button" class="richup-outline-btn" id="btn-toggle-lobby-chat">
-                  💬 Chat <span id="lobby-chat-pill-count" class="chat-badge-count" style="display:none;">0</span>
+          <!-- Main Glassmorphic Setup Card -->
+          <div class="richup-setup-card">
+            <!-- Left Column: Sliders & Bot Action -->
+            <div class="setup-col-left">
+              <!-- Starting Cash (1000, 1500, 2000, 2500) -->
+              <div class="setup-slider-section">
+                <div class="setup-section-heading">STARTING CASH</div>
+                <div class="setup-stepper-row">
+                  <button type="button" class="setup-stepper-btn" id="btn-cash-minus" title="Decrease $500">−</button>
+                  <div class="setup-slider-wrapper">
+                    <input type="range" id="setting-cash" min="1000" max="2500" step="500" value="1500"
+                      class="setup-golden-slider">
+                    <div class="setup-slider-badge-wrap">
+                      <div class="setup-slider-badge" id="badge-cash-val">$1,500</div>
+                    </div>
+                  </div>
+                  <button type="button" class="setup-stepper-btn" id="btn-cash-plus" title="Increase $500">+</button>
+                </div>
+                <div class="setup-slider-range-labels">
+                  <span>$1,000</span>
+                  <span>$2,500</span>
+                </div>
+              </div>
+
+              <!-- Turn Timer (Min 45s, Max 150s) -->
+              <div class="setup-slider-section">
+                <div class="setup-section-heading">TURN TIMER</div>
+                <div class="setup-slider-wrapper no-stepper">
+                  <input type="range" id="setting-timer-slider" min="0" max="4" step="1" value="0"
+                    class="setup-golden-slider timer-slider">
+                </div>
+                <div class="setup-slider-range-labels timer-ticks">
+                  <span data-idx="0" class="active">45s</span>
+                  <span data-idx="1">60s</span>
+                  <span data-idx="2">90s</span>
+                  <span data-idx="3">120s</span>
+                  <span data-idx="4">150s</span>
+                </div>
+                <input type="hidden" id="setting-timer" value="45">
+              </div>
+
+              <!-- Add AI Bot Button -->
+              <div class="setup-bot-action-wrap">
+                <button type="button" class="btn-richup-add-bot" id="btn-add-bot">
+                  <span>🤖 ADD AI BOT</span>
                 </button>
               </div>
-              <div class="setup-footer-right">
-                <div class="setup-players-strip" id="lobby-players-grid">
-                  <!-- Populated dynamically via JS -->
-                </div>
-                <button type="button" class="richup-start-btn" id="btn-start-game">START GAME</button>
-              </div>
             </div>
 
-            <!-- Floating / Drawer Lobby Chat -->
-            <div class="lobby-chat-drawer" id="lobby-chat-drawer" style="display:none;">
-              <div class="lobby-chat-header">
-                <span>💬 Room Chat</span>
-                <button type="button" class="chat-close-btn" id="btn-close-lobby-chat">✕</button>
+            <!-- Right Column: 2x3 Grid of Richup Switches -->
+            <div class="setup-col-right">
+              <div class="setup-toggles-grid">
+                <!-- Property Auctions (Green when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">PROPERTY AUCTIONS</div>
+                  <button type="button" class="richup-pill-toggle on green" id="toggle-auction"
+                    data-setting="setting-auction" data-color="green">
+                    <span class="toggle-text">ON</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-auction" value="true">
+                </div>
+
+                <!-- 2x Rent on Full Set (Gold when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">2x RENT ON FULL SET</div>
+                  <button type="button" class="richup-pill-toggle on gold" id="toggle-double-rent"
+                    data-setting="setting-double-rent" data-color="gold">
+                    <span class="toggle-text">ON</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-double-rent" value="true">
+                </div>
+
+                <!-- Rent While in Prison (Gold when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">RENT WHILE IN PRISON</div>
+                  <button type="button" class="richup-pill-toggle on gold" id="toggle-prison-rent"
+                    data-setting="setting-prison-rent" data-color="gold">
+                    <span class="toggle-text">ON</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-prison-rent" value="true">
+                </div>
+
+                <!-- Mortgage Properties (Gold when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">MORTGAGE PROPERTIES</div>
+                  <button type="button" class="richup-pill-toggle on gold" id="toggle-mortgage"
+                    data-setting="setting-mortgage" data-color="gold">
+                    <span class="toggle-text">ON</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-mortgage" value="true">
+                </div>
+
+                <!-- Even Houses Build (Gold when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">EVEN HOUSES BUILD</div>
+                  <button type="button" class="richup-pill-toggle off red" id="toggle-even-build"
+                    data-setting="setting-even-build" data-color="gold">
+                    <span class="toggle-text">OFF</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-even-build" value="false">
+                </div>
+
+                <!-- Advanced Shops (Gold when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">ADVANCED SHOPS</div>
+                  <button type="button" class="richup-pill-toggle on gold" id="toggle-advanced-shops"
+                    data-setting="setting-advanced-shops" data-color="gold">
+                    <span class="toggle-text">ON</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-advanced-shops" value="true">
+                </div>
+
+                <!-- Random Events (Gold when ON) -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">RANDOM EVENTS</div>
+                  <button type="button" class="richup-pill-toggle on gold" id="toggle-random-events"
+                    data-setting="setting-random-events" data-color="gold">
+                    <span class="toggle-text">ON</span>
+                    <span class="toggle-knob"></span>
+                  </button>
+                  <input type="hidden" id="setting-random-events" value="true">
+                </div>
+
+                <!-- Board Map Selection -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">MAP</div>
+                  <div class="richup-segmented-pill" id="segmented-map">
+                    <button type="button" class="seg-opt active" data-val="classic">Classic</button>
+                    <span class="seg-divider">/</span>
+                    <button type="button" class="seg-opt" data-val="extended">Extended</button>
+                  </div>
+                  <input type="hidden" id="setting-map" value="classic">
+                </div>
+
+                <!-- Room Visibility -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">ROOM VISIBILITY</div>
+                  <div class="richup-segmented-pill" id="segmented-privacy">
+                    <button type="button" class="seg-opt" data-val="true">Public</button>
+                    <span class="seg-divider">/</span>
+                    <button type="button" class="seg-opt active" data-val="false">Private</button>
+                  </div>
+                  <input type="hidden" id="setting-privacy" value="false">
+                </div>
+
+                <!-- Bot Difficulty Selection -->
+                <div class="setup-toggle-card">
+                  <div class="setup-toggle-label">BOT DIFFICULTY</div>
+                  <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
+                    <button type="button" class="seg-opt" data-val="conscious"
+                      title="Conscious: Casual, friendly, generous trades">Conscious</button>
+                    <span class="seg-divider">/</span>
+                    <button type="button" class="seg-opt active" data-val="balanced"
+                      title="Balanced: Standard competitive AI">Balanced</button>
+                    <span class="seg-divider">/</span>
+                    <button type="button" class="seg-opt" data-val="determined"
+                      title="Determined: Hardest, ruthless trader, blocks sets">Determined 🔥</button>
+                  </div>
+
+                  <!-- Bot Difficulty Selection -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">BOT DIFFICULTY</div>
+                    <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
+                      <button type="button" class="seg-opt" data-val="conscious"
+                        onclick="game.setBotDifficulty('conscious')"
+                        title="Conscious: Casual, friendly, generous trades">Conscious</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt active" data-val="balanced"
+                        onclick="game.setBotDifficulty('balanced')"
+                        title="Balanced: Standard competitive AI">Balanced</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt" data-val="determined"
+                        onclick="game.setBotDifficulty('determined')"
+                        title="Determined: Hardest, ruthless trader, blocks sets">Determined 🔥</button>
+                    </div>
+                    <input type="hidden" id="setting-bot-difficulty" value="balanced">
+                  </div>
+                </div>
               </div>
-              <div class="lobby-chat-messages" id="lobby-chat-messages"></div>
-              <form class="lobby-chat-input-bar" id="lobby-chat-form" onsubmit="event.preventDefault(); game.sendChatMessage('lobby');">
-                <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Type a message..." maxlength="200" autocomplete="off">
-                <button type="submit" class="chat-send-btn">➤</button>
-              </form>
             </div>
           </div>
+
+          <!-- Setup Bottom Action Bar -->
+          <div class="richup-setup-footer">
+            <div class="setup-footer-left">
+              <button type="button" class="richup-outline-btn btn-back-lobby" id="btn-back-setup"
+                title="Return to Main Menu">← BACK</button>
+              <button type="button" class="richup-outline-btn" id="btn-toggle-lobby-chat">
+                💬 Chat <span id="lobby-chat-pill-count" class="chat-badge-count" style="display:none;">0</span>
+              </button>
+            </div>
+            <div class="setup-footer-right">
+              <div class="setup-players-strip" id="lobby-players-grid">
+                <!-- Populated dynamically via JS -->
+              </div>
+              <button type="button" class="richup-start-btn" id="btn-start-game">START GAME</button>
+            </div>
+          </div>
+
+          <!-- Floating / Drawer Lobby Chat -->
+          <div class="lobby-chat-drawer" id="lobby-chat-drawer" style="display:none;">
+            <div class="lobby-chat-header">
+              <span>💬 Room Chat</span>
+              <button type="button" class="chat-close-btn" id="btn-close-lobby-chat">✕</button>
+            </div>
+            <div class="lobby-chat-messages" id="lobby-chat-messages"></div>
+            <form class="lobby-chat-input-bar" id="lobby-chat-form"
+              onsubmit="event.preventDefault(); game.sendChatMessage('lobby');">
+              <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Type a message..."
+                maxlength="200" autocomplete="off">
+              <button type="submit" class="chat-send-btn">➤</button>
+            </form>
+          </div>
         </div>
-      </section>
+      </div>
+    </section>
 
     <!-- Screen 2: Game Board View -->
     <section class="screen" id="game-screen">
@@ -415,11 +474,60 @@
             <div class="center-arena">
               <!-- 3D Rolling Dice -->
               <div class="dice-container" id="dice-container">
-                <div class="die" id="die-1" data-val="1">
-                  <div class="pip"></div>
+                <div class="dice-scene" id="dice-scene-1">
+                  <div class="die dice-cube" id="die-1" data-val="1">
+                    <div class="dice-face face-front" data-face="1"><span class="pip pip-center"></span></div>
+                    <div class="dice-face face-back" data-face="6">
+                      <span class="pip pip-tl"></span><span class="pip pip-tr"></span>
+                      <span class="pip pip-ml"></span><span class="pip pip-mr"></span>
+                      <span class="pip pip-bl"></span><span class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-right" data-face="3">
+                      <span class="pip pip-tl"></span><span class="pip pip-center"></span><span
+                        class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-left" data-face="4">
+                      <span class="pip pip-tl"></span><span class="pip pip-tr"></span>
+                      <span class="pip pip-bl"></span><span class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-top" data-face="2">
+                      <span class="pip pip-tl"></span><span class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-bottom" data-face="5">
+                      <span class="pip pip-tl"></span><span class="pip pip-tr"></span>
+                      <span class="pip pip-center"></span>
+                      <span class="pip pip-bl"></span><span class="pip pip-br"></span>
+                    </div>
+                  </div>
+                  <div class="dice-shadow" id="dice-shadow-1"></div>
                 </div>
-                <div class="die" id="die-2" data-val="1">
-                  <div class="pip"></div>
+
+                <div class="dice-scene" id="dice-scene-2">
+                  <div class="die dice-cube" id="die-2" data-val="1">
+                    <div class="dice-face face-front" data-face="1"><span class="pip pip-center"></span></div>
+                    <div class="dice-face face-back" data-face="6">
+                      <span class="pip pip-tl"></span><span class="pip pip-tr"></span>
+                      <span class="pip pip-ml"></span><span class="pip pip-mr"></span>
+                      <span class="pip pip-bl"></span><span class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-right" data-face="3">
+                      <span class="pip pip-tl"></span><span class="pip pip-center"></span><span
+                        class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-left" data-face="4">
+                      <span class="pip pip-tl"></span><span class="pip pip-tr"></span>
+                      <span class="pip pip-bl"></span><span class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-top" data-face="2">
+                      <span class="pip pip-tl"></span><span class="pip pip-br"></span>
+                    </div>
+                    <div class="dice-face face-bottom" data-face="5">
+                      <span class="pip pip-tl"></span><span class="pip pip-tr"></span>
+                      <span class="pip pip-center"></span>
+                      <span class="pip pip-bl"></span><span class="pip pip-br"></span>
+                    </div>
+                  </div>
+                  <div class="dice-shadow" id="dice-shadow-2"></div>
                 </div>
               </div>
 
@@ -460,7 +568,8 @@
 
             <!-- Floating Notification Box below the End Turn / Action area -->
             <div class="richup-card-popup" id="richup-card-popup" style="display:none;">
-              <button class="card-popup-close" id="btn-card-popup-close" onclick="game.closeCardPopup()" title="Close">&times;</button>
+              <button class="card-popup-close" id="btn-card-popup-close" onclick="game.closeCardPopup()"
+                title="Close">&times;</button>
               <div class="card-popup-text" id="card-popup-text">Tax refund. Collect $100.</div>
             </div>
 
@@ -517,7 +626,7 @@
           style="padding:10px 14px;border-top:1px solid var(--border-color);background:rgba(0,0,0,0.25);">
           <button class="btn-secondary" id="btn-voluntary-bankruptcy"
             style="width:100%;color:#ef4444;border-color:rgba(239,68,68,0.4);font-size:0.85rem;padding:9px;font-weight:700;">
-            💀 Declare Bankruptcy
+            Declare Bankruptcy
           </button>
         </div>
       </aside>
@@ -755,19 +864,24 @@
 
         <!-- Live Token Preview -->
         <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-          <div id="custom-avatar-preview-token" class="player-token" style="position: relative; width: 64px; height: 64px; margin: 0 auto; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+          <div id="custom-avatar-preview-token" class="player-token"
+            style="position: relative; width: 64px; height: 64px; margin: 0 auto; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
             <span class="token-emoji" id="custom-avatar-preview-char" style="font-size: 2rem;">🚗</span>
           </div>
         </div>
 
         <!-- Input Field -->
         <div style="max-width: 220px; margin: 0 auto 16px;">
-          <input type="text" id="input-custom-avatar" class="input-text" style="text-align: center; font-size: 1.8rem; font-weight: 800; padding: 10px; letter-spacing: 2px;" placeholder="🔥 or A" maxlength="8" autocomplete="off">
+          <input type="text" id="input-custom-avatar" class="input-text"
+            style="text-align: center; font-size: 1.8rem; font-weight: 800; padding: 10px; letter-spacing: 2px;"
+            placeholder="🔥 or A" maxlength="8" autocomplete="off">
         </div>
 
         <!-- Quick Suggestions -->
         <div style="margin-bottom: 24px;">
-          <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Quick Picks</div>
+          <div
+            style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">
+            Quick Picks</div>
           <div class="quick-avatar-picks">
             <button type="button" class="quick-pick-btn" data-val="🦁">🦁</button>
             <button type="button" class="quick-pick-btn" data-val="⚡">⚡</button>
@@ -783,7 +897,8 @@
         <!-- Action Buttons -->
         <div style="display: flex; gap: 12px; justify-content: center;">
           <button type="button" class="btn-secondary btn-modal-close" style="flex: 1; padding: 11px;">Cancel</button>
-          <button type="button" class="btn-primary" id="btn-save-custom-avatar" style="flex: 1; padding: 11px;">Use Icon</button>
+          <button type="button" class="btn-primary" id="btn-save-custom-avatar" style="flex: 1; padding: 11px;">Use
+            Icon</button>
         </div>
       </div>
     </div>
@@ -793,8 +908,8 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="/js/audio.js?v=20261121_8"></script>
-  <script src="/js/game.js?v=20261121_8"></script>
+  <script src="/js/audio.js?v=20261124_03"></script>
+  <script src="/js/game.js?v=20261124_03"></script>
 </body>
 
 </html>

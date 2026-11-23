@@ -25,7 +25,8 @@ DEFAULT_SETTINGS = {
     "advanced_shops": True,
     "random_events": True,
     "map": "classic",
-    "is_public": False
+    "is_public": False,
+    "bot_difficulty": "balanced"
 }
 
 AVATARS = ["🚗", "🚀", "🎩", "🐶", "🐱", "⛵", "💎", "👑"]
@@ -156,7 +157,11 @@ class GameRoom:
 
     def update_settings(self, new_settings: Dict[str, Any]):
         for k, v in new_settings.items():
-            if k in self.settings:
+            if k == "bot_difficulty":
+                diff = str(v).lower()
+                if diff in ["conscious", "balanced", "determined"]:
+                    self.settings[k] = diff
+            elif k in self.settings:
                 self.settings[k] = v
         if "map" in new_settings and self.state == "LOBBY":
             self.set_map(new_settings["map"])
@@ -1344,25 +1349,39 @@ class GameRoom:
         request["properties"] = request_props
 
         # Validate offer
-        if offer.get("cash", 0) > sender["cash"] or offer.get("jail_cards", 0) > sender["jail_cards"]:
+        offer_cash = max(0, int(offer.get("cash", 0)))
+        offer["cash"] = offer_cash
+        if offer_cash > max(0, sender["cash"]) or offer.get("jail_cards", 0) > sender.get("jail_cards", 0):
+            self.last_trade_error = f"Cannot offer ${offer_cash}: Insufficient cash balance." if offer_cash > max(0, sender["cash"]) else "Cannot offer more Jail cards than you hold."
             return None
         for tid in offer_props:
-            if self.tile_states[tid]["owner"] != sender_id:
+            if tid not in self.tile_states or self.tile_states[tid]["owner"] != sender_id:
+                self.last_trade_error = "You do not own all properties in your offer."
                 return None
             # Must have 0 houses on entire color group
             t = self.board_tiles[tid]
-            if t["type"] == "property" and any(self.tile_states[ot]["houses"] > 0 for ot in self.color_groups[t["group"]]["tiles"]):
-                return None
+            if t["type"] == "property":
+                grp_tiles = self.color_groups.get(t.get("group", ""), {}).get("tiles", [])
+                if any(self.tile_states[ot]["houses"] > 0 for ot in grp_tiles):
+                    self.last_trade_error = f"Cannot trade {t['name']}: You cannot trade properties with houses or hotels on their color group. Sell all houses first."
+                    return None
 
         # Validate request
-        if request.get("cash", 0) > receiver["cash"] or request.get("jail_cards", 0) > receiver["jail_cards"]:
+        request_cash = max(0, int(request.get("cash", 0)))
+        request["cash"] = request_cash
+        if request_cash > max(0, receiver["cash"]) or request.get("jail_cards", 0) > receiver.get("jail_cards", 0):
+            self.last_trade_error = f"{receiver['name']} does not have enough cash (${request_cash}) to accept this deal." if request_cash > max(0, receiver["cash"]) else f"{receiver['name']} does not hold enough Jail cards."
             return None
         for tid in request_props:
-            if self.tile_states[tid]["owner"] != receiver_id:
+            if tid not in self.tile_states or self.tile_states[tid]["owner"] != receiver_id:
+                self.last_trade_error = f"{receiver['name']} does not own all requested properties."
                 return None
             t = self.board_tiles[tid]
-            if t["type"] == "property" and any(self.tile_states[ot]["houses"] > 0 for ot in self.color_groups[t["group"]]["tiles"]):
-                return None
+            if t["type"] == "property":
+                grp_tiles = self.color_groups.get(t.get("group", ""), {}).get("tiles", [])
+                if any(self.tile_states[ot]["houses"] > 0 for ot in grp_tiles):
+                    self.last_trade_error = f"Cannot request {t['name']}: Its color group has houses or hotels built on it."
+                    return None
 
         trade_id = str(uuid.uuid4())[:8]
         self.active_trades[trade_id] = {
@@ -1403,16 +1422,21 @@ class GameRoom:
         # Check conditions still hold
         offer = trade["offer"]
         request = trade["request"]
-        if offer.get("cash", 0) > sender["cash"] or request.get("cash", 0) > receiver["cash"]:
+        offer_cash = max(0, int(offer.get("cash", 0)))
+        request_cash = max(0, int(request.get("cash", 0)))
+        if offer_cash > max(0, sender["cash"]) or request_cash > max(0, receiver["cash"]):
             trade["status"] = "CANCELLED"
             trade["resolved_at"] = time.time()
             self.trade_history.append(trade.copy())
             self.active_trades.pop(trade_id, None)
+            self.log(f"Trade between {sender['name']} and {receiver['name']} cancelled due to insufficient funds.", "trade", "⚠️")
             return False
 
         # Execute exchange
-        sender["cash"] += request.get("cash", 0) - offer.get("cash", 0)
-        receiver["cash"] += offer.get("cash", 0) - request.get("cash", 0)
+        sender_prev_cash = sender["cash"]
+        receiver_prev_cash = receiver["cash"]
+        sender["cash"] += request_cash - offer_cash
+        receiver["cash"] += offer_cash - request_cash
 
         sender["jail_cards"] += request.get("jail_cards", 0) - offer.get("jail_cards", 0)
         receiver["jail_cards"] += offer.get("jail_cards", 0) - request.get("jail_cards", 0)
@@ -1435,7 +1459,13 @@ class GameRoom:
         trade["resolved_at"] = time.time()
         self.trade_history.append(trade.copy())
         self.active_trades.pop(trade_id, None)
-        self.log(f"Trade completed between {sender['name']} and {receiver['name']}!", "trade", "🎉")
+
+        if sender_prev_cash < 0 and sender["cash"] >= 0:
+            self.log(f"🎉 {sender['name']} cleared their debt by trading properties to {receiver['name']} for ${request_cash}!", "money", "✅", sender["id"])
+        elif receiver_prev_cash < 0 and receiver["cash"] >= 0:
+            self.log(f"🎉 {receiver['name']} cleared their debt by trading properties to {sender['name']} for ${offer_cash}!", "money", "✅", receiver["id"])
+        else:
+            self.log(f"Trade completed between {sender['name']} and {receiver['name']}!", "trade", "🎉")
         return True
 
     def cancel_trade(self, player_id: str, trade_id: str) -> bool:

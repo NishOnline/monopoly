@@ -103,12 +103,20 @@ class RichupGame {
     this.playerName = localStorage.getItem('richup_player_name') || 'Player';
     this.selectedAvatar = '🚗';
     this.selectedColor = '#ef4444';
+    this.selectedBotDifficulty = 'balanced';
 
     // Animation tracking
     this.previousPositions = {};
     this.previousCash = {};
     this.isRolling = false;
     this.soundMuted = false;
+
+    // Anti-spam tracking
+    this.lastReactionTime = 0;
+    this.reactionBurstHistory = [];
+    this.lastChatTime = 0;
+    this.lastChatText = '';
+    this.chatBurstHistory = [];
 
     // Modals
     this.activeTradePartnerId = null;
@@ -121,10 +129,13 @@ class RichupGame {
   }
 
   async init() {
+    const topNav = document.querySelector('.top-nav');
+    if (topNav) topNav.style.display = 'none';
     this.initDOM();
     this.loadProfileFromStorage();
     await this.fetchBoardData();
     this.renderBoardSkeleton();
+    this.setDiceFaces(1, 1);
     this.checkUrlForRoom();
     this.fetchOpenRooms();
     this.startHeartbeat();
@@ -138,6 +149,8 @@ class RichupGame {
       soundBtn.addEventListener('click', () => {
         this.soundMuted = !window.soundEngine.toggle();
         soundBtn.innerHTML = this.soundMuted ? '🔇' : '🔊';
+        const mainSoundBtn = document.getElementById('btn-sound-main');
+        if (mainSoundBtn) mainSoundBtn.innerHTML = this.soundMuted ? '🔇' : '🔊';
         this.showToast(this.soundMuted ? 'Sound muted' : 'Sound enabled');
       });
     }
@@ -248,7 +261,7 @@ class RichupGame {
       btn.addEventListener('click', () => {
         privacyBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        const val = btn.getAttribute('data-value');
+        const val = btn.getAttribute('data-value') || btn.getAttribute('data-val');
         const hiddenInput = document.getElementById('input-room-public');
         if (hiddenInput) hiddenInput.value = val;
       });
@@ -268,7 +281,8 @@ class RichupGame {
           playerName: this.playerName,
           avatar: this.selectedAvatar,
           color: this.selectedColor,
-          is_public: isPublic
+          is_public: isPublic,
+          bot_difficulty: this.selectedBotDifficulty || 'balanced'
         });
       });
     }
@@ -286,6 +300,13 @@ class RichupGame {
           return;
         }
         localStorage.setItem('richup_player_name', this.playerName);
+
+        // Retrieve saved player ID for this specific room if reconnecting
+        const savedRoomPid = localStorage.getItem(`richup_player_id_${code}`) || localStorage.getItem('richup_player_id');
+        if (savedRoomPid) {
+          this.playerId = savedRoomPid;
+        }
+
         this.connectAndSend({
           action: 'JOIN_ROOM',
           roomId: code,
@@ -409,7 +430,10 @@ class RichupGame {
     const segButtons = document.querySelectorAll('#segmented-privacy .seg-opt');
     segButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        if (!this.isHost) return;
+        if (!this.isHost) {
+          if (this.roomId) this.showToast('Only the room host can change room visibility 🔒');
+          return;
+        }
         segButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const hiddenPrivacy = document.getElementById('setting-privacy');
@@ -422,12 +446,25 @@ class RichupGame {
     const segMapButtons = document.querySelectorAll('#segmented-map .seg-opt');
     segMapButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        if (!this.isHost) return;
+        if (!this.isHost) {
+          if (this.roomId) this.showToast('Only the room host can change map settings 🔒');
+          return;
+        }
         segMapButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const hiddenMap = document.getElementById('setting-map');
         if (hiddenMap) hiddenMap.value = btn.getAttribute('data-val');
         this.applySettings();
+      });
+    });
+
+    // 4c. Bot Difficulty Segmented Pill in Room Settings (Conscious / Balanced / Determined)
+    document.querySelectorAll('#segmented-bot-difficulty .seg-opt').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const val = btn.getAttribute('data-val');
+        this.setBotDifficulty(val);
       });
     });
 
@@ -632,17 +669,30 @@ class RichupGame {
       });
     });
 
-    // Quick Reaction Buttons (Both active players and spectators)
+    // Quick Reaction Buttons (Both active players and spectators) with Anti-Spam Throttling
     document.querySelectorAll('.reaction-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const emoji = btn.getAttribute('data-emoji');
-        this.sendAction({
-          action: 'SEND_REACTION',
-          emoji: emoji
-        });
+        this.sendQuickReaction(emoji);
       });
     });
+
+    // Notify server immediately on tab reload/close so offline grace timer starts at once
+    const handleBeforeUnload = () => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.playerId) {
+        try {
+          this.ws.send(JSON.stringify({
+            action: 'CLIENT_DISCONNECT',
+            roomId: this.roomId,
+            playerId: this.playerId
+          }));
+          this.ws.close();
+        } catch (e) {}
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
 
     // Close every menu (financial profile, property inspector, rules, trade) on Escape key press
     window.addEventListener('keydown', (e) => {
@@ -866,13 +916,22 @@ class RichupGame {
   }
 
   quickJoin(code) {
+    const c = (code || '').toUpperCase().trim();
+    if (!c) return;
     const codeInput = document.getElementById('input-room-code');
-    if (codeInput) codeInput.value = code;
+    if (codeInput) codeInput.value = c;
     const nameInput = document.getElementById('input-join-name');
-    if (nameInput) this.playerName = nameInput.value.trim() || 'Player';
+    if (nameInput) this.playerName = nameInput.value.trim() || this.playerName || 'Player';
+
+    // Retrieve saved player ID for this specific room if reconnecting
+    const savedRoomPid = localStorage.getItem(`richup_player_id_${c}`) || localStorage.getItem('richup_player_id');
+    if (savedRoomPid) {
+      this.playerId = savedRoomPid;
+    }
+
     this.connectAndSend({
       action: 'JOIN_ROOM',
-      roomId: code,
+      roomId: c,
       playerId: this.playerId,
       playerName: this.playerName,
       avatar: this.selectedAvatar,
@@ -1024,6 +1083,8 @@ class RichupGame {
         this.isHost = Boolean(msg.isHost);
         this.isSpectator = Boolean(msg.isSpectator);
         localStorage.setItem('richup_player_id', this.playerId);
+        localStorage.setItem(`richup_player_id_${this.roomId}`, this.playerId);
+        localStorage.setItem(`richup_player_name_${this.roomId}`, this.playerName);
         localStorage.setItem('richup_last_room', this.roomId);
         if (window.history && window.history.replaceState) {
           window.history.replaceState({}, '', `/?room=${this.roomId}`);
@@ -1043,7 +1104,17 @@ class RichupGame {
           }
           this.showToast('Joined live game as spectator! 👁️');
         } else {
-          this.showLobbyRoomView();
+          const specPill = document.getElementById('nav-spectator-pill');
+          if (specPill) specPill.style.display = 'none';
+          if (this.gameState && this.gameState.state === 'PLAYING') {
+            document.getElementById('screen-welcome').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            this.renderBoardSkeleton();
+            this.renderAllPlayerTokens();
+            this.updateContextControls();
+          } else {
+            this.showLobbyRoomView();
+          }
         }
         break;
 
@@ -1094,7 +1165,7 @@ class RichupGame {
 
   resetToMainMenu() {
     this.roomId = null;
-    this.playerId = null;
+    this.playerId = localStorage.getItem('richup_player_id') || this.playerId;
     this.isHost = false;
     this.isSpectator = false;
     this.gameState = null;
@@ -1112,7 +1183,7 @@ class RichupGame {
     const roomView = document.getElementById('room-lobby-view');
     if (roomView) roomView.style.display = 'none';
     const topNav = document.querySelector('.top-nav');
-    if (topNav) topNav.style.display = 'flex';
+    if (topNav) topNav.style.display = 'none';
     this.fetchOpenRooms();
   }
 
@@ -1163,6 +1234,36 @@ class RichupGame {
     });
   }
 
+  setBotDifficulty(diffVal) {
+    const val = (diffVal || '').toLowerCase().trim();
+    if (!['conscious', 'balanced', 'determined'].includes(val)) return;
+
+    if (this.roomId && !this.isHost) {
+      this.showToast('Only the room host can change bot difficulty 🔒');
+      return;
+    }
+
+    this.selectedBotDifficulty = val;
+    this.syncBotDifficultySegmented(val);
+
+    if (this.isHost) {
+      this.applySettings();
+    }
+  }
+
+  syncBotDifficultySegmented(diffVal) {
+    const val = (diffVal || this.selectedBotDifficulty || 'balanced').toLowerCase().trim();
+    this.selectedBotDifficulty = val;
+
+    const el = document.getElementById('setting-bot-difficulty');
+    if (el) el.value = val;
+
+    document.querySelectorAll('#segmented-bot-difficulty .seg-opt').forEach(b => {
+      const bVal = (b.getAttribute('data-val') || '').toLowerCase().trim();
+      b.classList.toggle('active', bVal === val);
+    });
+  }
+
   applySettings() {
     if (!this.isHost) return;
     const startingCash = parseInt(document.getElementById('setting-cash').value, 10);
@@ -1179,6 +1280,8 @@ class RichupGame {
     const mapVal = mapEl ? mapEl.value : 'standard';
     const privacyEl = document.getElementById('setting-privacy');
     const isPublic = privacyEl ? privacyEl.value === 'true' : false;
+    const botDiffEl = document.getElementById('setting-bot-difficulty');
+    const botDifficulty = this.selectedBotDifficulty || (botDiffEl ? botDiffEl.value : 'balanced');
 
     this.sendAction({
       action: 'UPDATE_SETTINGS',
@@ -1194,7 +1297,8 @@ class RichupGame {
         advanced_shops: advancedShops,
         random_events: randomEvents,
         map: mapVal,
-        is_public: isPublic
+        is_public: isPublic,
+        bot_difficulty: botDifficulty
       }
     });
   }
@@ -1209,12 +1313,15 @@ class RichupGame {
       this.isHost = (this.playerId === data.host_id);
     }
 
-    // Reset spectator and bankrupt state when in lobby for players in the room
+    // Reset spectator state whenever player is seated in the room's players list
     const myPlayerInList = data.players ? data.players.find(p => p.id === this.playerId) : null;
+    if (myPlayerInList) {
+      this.isSpectator = false;
+      const specPill = document.getElementById('nav-spectator-pill');
+      if (specPill) specPill.style.display = 'none';
+    }
+
     if (data.state === 'LOBBY') {
-      if (myPlayerInList) {
-        this.isSpectator = false;
-      }
       this.closeModal('modal-gameover');
       this.closeModal('modal-confirm-bankruptcy');
       document.getElementById('screen-welcome').classList.add('active');
@@ -1249,6 +1356,11 @@ class RichupGame {
       this.syncPillToggle('toggle-advanced-shops', 'setting-advanced-shops', data.settings.advanced_shops !== false, 'gold');
       this.syncPillToggle('toggle-random-events', 'setting-random-events', data.settings.random_events !== false, 'gold');
       this.syncPrivacySegmented(Boolean(data.settings.is_public));
+      if (data.settings.bot_difficulty) {
+        this.syncBotDifficultySegmented(data.settings.bot_difficulty);
+      } else {
+        this.syncBotDifficultySegmented(this.selectedBotDifficulty || 'balanced');
+      }
 
       let currentMap = data.settings.map || 'classic';
       if (currentMap === 'standard') currentMap = 'classic';
@@ -1260,10 +1372,9 @@ class RichupGame {
         this.renderAllPlayerTokens();
       }
 
-      // Disable inputs for non-host players, enable for host
+      // Visual indication for non-host players (keep interactive so clicking gives clear feedback)
       const isHost = this.isHost;
-      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt, #segmented-map .seg-opt').forEach(el => {
-        el.style.pointerEvents = isHost ? 'auto' : 'none';
+      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt, #segmented-map .seg-opt, #segmented-bot-difficulty .seg-opt').forEach(el => {
         el.style.opacity = isHost ? '1' : '0.65';
       });
       const addBotBtn = document.getElementById('btn-add-bot');
@@ -2190,16 +2301,40 @@ class RichupGame {
     }
   }
 
+  rotateDieToFace(die, val) {
+    if (!die) return;
+    const v = parseInt(val, 10) || 1;
+    die.setAttribute('data-val', v);
+
+    // Standard 3D orientation for each face
+    const rotations = {
+      1: { x: 0, y: 0 },
+      2: { x: -90, y: 0 },
+      3: { x: 0, y: -90 },
+      4: { x: 0, y: 90 },
+      5: { x: 90, y: 0 },
+      6: { x: 0, y: 180 }
+    };
+    const rot = rotations[v] || { x: 0, y: 0 };
+    die.style.transform = `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`;
+  }
+
   setDiceFaces(d1, d2) {
     const die1 = document.getElementById('die-1');
     const die2 = document.getElementById('die-2');
     if (!die1 || !die2) return;
 
-    die1.setAttribute('data-val', d1);
-    die2.setAttribute('data-val', d2);
+    this.rotateDieToFace(die1, d1);
+    this.rotateDieToFace(die2, d2);
 
-    die1.innerHTML = Array(d1).fill('<div class="pip"></div>').join('');
-    die2.innerHTML = Array(d2).fill('<div class="pip"></div>').join('');
+    const container = document.getElementById('dice-container');
+    if (container) {
+      if (d1 === d2 && d1 > 0) {
+        container.classList.add('doubles-glow');
+      } else {
+        container.classList.remove('doubles-glow');
+      }
+    }
   }
 
   triggerDiceAnimation(targetD1, targetD2, onComplete = null) {
@@ -2209,37 +2344,100 @@ class RichupGame {
     this.isRolling = true;
     const die1 = document.getElementById('die-1');
     const die2 = document.getElementById('die-2');
-    if (die1) {
-      die1.classList.remove('rolling');
-      void die1.offsetWidth;
-      die1.classList.add('rolling');
-    }
-    if (die2) {
-      die2.classList.remove('rolling');
-      void die2.offsetWidth;
-      die2.classList.add('rolling');
-    }
+    const shadow1 = document.getElementById('dice-shadow-1');
+    const shadow2 = document.getElementById('dice-shadow-2');
+    const container = document.getElementById('dice-container');
 
+    if (container) container.classList.remove('doubles-glow');
+
+    const d1 = parseInt(targetD1 || (this.gameState && this.gameState.last_dice ? this.gameState.last_dice[0] : 1), 10) || 1;
+    const d2 = parseInt(targetD2 || (this.gameState && this.gameState.last_dice ? this.gameState.last_dice[1] : 1), 10) || 1;
+
+    const rotations = {
+      1: { x: 0, y: 0 },
+      2: { x: -90, y: 0 },
+      3: { x: 0, y: -90 },
+      4: { x: 0, y: 90 },
+      5: { x: 90, y: 0 },
+      6: { x: 0, y: 180 }
+    };
+
+    const rot1 = rotations[d1] || { x: 0, y: 0 };
+    const rot2 = rotations[d2] || { x: 0, y: 0 };
+
+    // Play throw and table tumble sound
     window.soundEngine.diceRoll();
 
-    // 1. Tumble visual animation (600ms)
-    this.diceTimeout1 = setTimeout(() => {
-      if (die1) die1.classList.remove('rolling');
-      if (die2) die2.classList.remove('rolling');
+    const rollDuration = 820; // ms
 
-      const d1 = targetD1 || (this.gameState && this.gameState.last_dice ? this.gameState.last_dice[0] : 1);
-      const d2 = targetD2 || (this.gameState && this.gameState.last_dice ? this.gameState.last_dice[1] : 1);
+    // Realistic physics keyframes: Arching trajectory, felt table impacts with squash, rebound, and seamless face alignment
+    const keyframes1 = [
+      { transform: 'translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale3d(1, 1, 1)', offset: 0, easing: 'cubic-bezier(0.2, 0.8, 0.35, 1)' },
+      { transform: 'translate3d(-22px, -64px, 32px) rotateX(410deg) rotateY(360deg) rotateZ(145deg) scale3d(1.14, 1.14, 1.14)', offset: 0.22, easing: 'cubic-bezier(0.55, 0.05, 0.85, 0.45)' },
+      { transform: 'translate3d(-14px, 0, 0) rotateX(810deg) rotateY(740deg) rotateZ(285deg) scale3d(1.18, 0.82, 1.18)', offset: 0.48, easing: 'cubic-bezier(0.2, 0.85, 0.4, 1)' },
+      { transform: 'translate3d(-8px, -20px, 14px) rotateX(960deg) rotateY(940deg) rotateZ(330deg) scale3d(1.05, 1.05, 1.05)', offset: 0.70, easing: 'cubic-bezier(0.55, 0.08, 0.85, 0.5)' },
+      { transform: `translate3d(-3px, 0, 0) rotateX(1072deg) rotateY(${1080 + rot1.y - 8}deg) rotateZ(356deg) scale3d(1.06, 0.94, 1.06)`, offset: 0.88, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+      { transform: `translate3d(-1px, -2px, 2px) rotateX(${1080 + rot1.x}deg) rotateY(${1080 + rot1.y}deg) rotateZ(360deg) scale3d(1.01, 1, 1.01)`, offset: 0.95 },
+      { transform: `translate3d(0, 0, 0) rotateX(${1080 + rot1.x}deg) rotateY(${1080 + rot1.y}deg) rotateZ(360deg) scale3d(1, 1, 1)`, offset: 1 }
+    ];
+
+    const keyframes2 = [
+      { transform: 'translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale3d(1, 1, 1)', offset: 0, easing: 'cubic-bezier(0.2, 0.8, 0.35, 1)' },
+      { transform: 'translate3d(24px, -68px, 35px) rotateX(-390deg) rotateY(-380deg) rotateZ(-155deg) scale3d(1.15, 1.15, 1.15)', offset: 0.22, easing: 'cubic-bezier(0.55, 0.05, 0.85, 0.45)' },
+      { transform: 'translate3d(15px, 0, 0) rotateX(-790deg) rotateY(-760deg) rotateZ(-295deg) scale3d(1.2, 0.8, 1.2)', offset: 0.50, easing: 'cubic-bezier(0.2, 0.85, 0.4, 1)' },
+      { transform: 'translate3d(9px, -22px, 16px) rotateX(-950deg) rotateY(-960deg) rotateZ(-335deg) scale3d(1.06, 1.06, 1.06)', offset: 0.72, easing: 'cubic-bezier(0.55, 0.08, 0.85, 0.5)' },
+      { transform: `translate3d(4px, 0, 0) rotateX(-1070deg) rotateY(${-1080 + rot2.y + 8}deg) rotateZ(-358deg) scale3d(1.06, 0.94, 1.06)`, offset: 0.90, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+      { transform: `translate3d(1px, -2px, 2px) rotateX(${-1080 + rot2.x}deg) rotateY(${-1080 + rot2.y}deg) rotateZ(-360deg) scale3d(1.01, 1, 1.01)`, offset: 0.96 },
+      { transform: `translate3d(0, 0, 0) rotateX(${-1080 + rot2.x}deg) rotateY(${-1080 + rot2.y}deg) rotateZ(-360deg) scale3d(1, 1, 1)`, offset: 1 }
+    ];
+
+    const shadowKeyframes1 = [
+      { transform: 'translateX(-50%) scale(1)', opacity: 0.7, filter: 'blur(1.5px)' },
+      { transform: 'translateX(-50%) scale(0.48) translateY(5px)', opacity: 0.16, filter: 'blur(6px)' },
+      { transform: 'translateX(-50%) scale(1.22)', opacity: 0.88, filter: 'blur(1px)' },
+      { transform: 'translateX(-50%) scale(0.72) translateY(2px)', opacity: 0.35, filter: 'blur(4px)' },
+      { transform: 'translateX(-50%) scale(1.08)', opacity: 0.8, filter: 'blur(1.2px)' },
+      { transform: 'translateX(-50%) scale(1)', opacity: 0.7, filter: 'blur(1.5px)' }
+    ];
+
+    const shadowKeyframes2 = [
+      { transform: 'translateX(-50%) scale(1)', opacity: 0.7, filter: 'blur(1.5px)' },
+      { transform: 'translateX(-50%) scale(0.45) translateY(6px)', opacity: 0.15, filter: 'blur(6.5px)' },
+      { transform: 'translateX(-50%) scale(1.25)', opacity: 0.9, filter: 'blur(1px)' },
+      { transform: 'translateX(-50%) scale(0.7)', opacity: 0.32, filter: 'blur(4.5px)' },
+      { transform: 'translateX(-50%) scale(1.08)', opacity: 0.8, filter: 'blur(1.2px)' },
+      { transform: 'translateX(-50%) scale(1)', opacity: 0.7, filter: 'blur(1.5px)' }
+    ];
+
+    try {
+      if (die1 && die1.animate) {
+        die1.animate(keyframes1, { duration: rollDuration, fill: 'forwards' });
+      }
+      if (die2 && die2.animate) {
+        die2.animate(keyframes2, { duration: rollDuration, fill: 'forwards' });
+      }
+      if (shadow1 && shadow1.animate) {
+        shadow1.animate(shadowKeyframes1, { duration: rollDuration, fill: 'forwards' });
+      }
+      if (shadow2 && shadow2.animate) {
+        shadow2.animate(shadowKeyframes2, { duration: rollDuration, fill: 'forwards' });
+      }
+    } catch (e) {
+      console.warn('Web Animations fallback:', e);
+    }
+
+    this.diceTimeout1 = setTimeout(() => {
       this.setDiceFaces(d1, d2);
       window.soundEngine.diceResult();
 
-      // 2. Brief pause (220ms) so players see the rolled dice result before tokens move
+      // Brief pause (240ms) so players see the rolled 3D dice result before tokens move
       this.diceTimeout2 = setTimeout(() => {
         this.isRolling = false;
         if (typeof onComplete === 'function') {
           onComplete();
         }
-      }, 220);
-    }, 600);
+      }, 240);
+    }, rollDuration);
   }
 
   // ================= Completed Monopoly Set Animation =================
@@ -3162,6 +3360,18 @@ class RichupGame {
       if (submitBtn) submitBtn.innerHTML = 'Send Proposal';
     }
 
+    // Debt liquidation notification banner
+    const debtBanner = document.getElementById('trade-desk-debt-banner');
+    if (debtBanner) {
+      if (myPlayer.cash < 0) {
+        debtBanner.style.display = 'block';
+        debtBanner.innerHTML = `⚠️ <strong>Debt Liquidation Mode:</strong> You are currently in debt (<strong>-$${Math.abs(myPlayer.cash)}</strong>). You cannot offer cash, but you can sell/trade your properties to <strong>${targetPlayer.name}</strong> for cash to pay off your debt and stay in the game!`;
+      } else {
+        debtBanner.style.display = 'none';
+        debtBanner.innerHTML = '';
+      }
+    }
+
     // Set up my cash slider: min 0, max my bank balance
     const myCashSlider = document.getElementById('trade-my-cash');
     const myCashDisplay = document.getElementById('trade-my-cash-display');
@@ -3177,9 +3387,12 @@ class RichupGame {
       myCashSlider.min = 0;
       myCashSlider.max = myMax;
       myCashSlider.value = myInitialVal;
+      myCashSlider.disabled = (myMax === 0);
       if (myCashMinLbl) myCashMinLbl.innerText = '$0';
       if (myCashMaxLbl) myCashMaxLbl.innerText = `$${myMax}`;
-      if (myCashDisplay) myCashDisplay.innerText = `$${myInitialVal}`;
+      if (myCashDisplay) {
+        myCashDisplay.innerText = myPlayer.cash < 0 ? `$0 (In Debt: -$${Math.abs(myPlayer.cash)})` : `$${myInitialVal}`;
+      }
     }
 
     // Set up their cash slider:
@@ -3202,9 +3415,12 @@ class RichupGame {
       theirCashSlider.min = theirMin;
       theirCashSlider.max = Math.max(theirMin, theirMax);
       theirCashSlider.value = theirInitialVal;
+      theirCashSlider.disabled = (theirMax === 0);
       if (theirCashMinLbl) theirCashMinLbl.innerText = `$${theirMin}`;
       if (theirCashMaxLbl) theirCashMaxLbl.innerText = `$${theirMax}`;
-      if (theirCashDisplay) theirCashDisplay.innerText = `$${theirInitialVal}`;
+      if (theirCashDisplay) {
+        theirCashDisplay.innerText = targetPlayer.cash <= 0 ? `$0 (${targetPlayer.name} has no cash)` : `$${theirInitialVal}`;
+      }
     }
 
     // Pre-populate properties if negotiating
@@ -3278,8 +3494,18 @@ class RichupGame {
   }
 
   sendTradeOffer() {
-    const offerCash = parseInt(document.getElementById('trade-my-cash').value, 10) || 0;
-    const requestCash = parseInt(document.getElementById('trade-their-cash').value, 10) || 0;
+    const offerCashInput = document.getElementById('trade-my-cash');
+    const requestCashInput = document.getElementById('trade-their-cash');
+    const offerCash = Math.max(0, parseInt(offerCashInput ? offerCashInput.value : 0, 10) || 0);
+    const requestCash = Math.max(0, parseInt(requestCashInput ? requestCashInput.value : 0, 10) || 0);
+
+    const offerProps = Array.from(this.tradeOfferProperties);
+    const reqProps = Array.from(this.tradeRequestProperties);
+
+    if (offerProps.length === 0 && reqProps.length === 0 && offerCash === 0 && requestCash === 0) {
+      this.showToast('Please select at least one property or enter cash to propose a trade.');
+      return;
+    }
 
     if (this.negotiatingTradeId) {
       this.sendAction({
@@ -3287,11 +3513,11 @@ class RichupGame {
         tradeId: this.negotiatingTradeId,
         offer: {
           cash: offerCash,
-          properties: Array.from(this.tradeOfferProperties)
+          properties: offerProps
         },
         request: {
           cash: requestCash,
-          properties: Array.from(this.tradeRequestProperties)
+          properties: reqProps
         }
       });
       this.negotiatingTradeId = null;
@@ -3303,11 +3529,11 @@ class RichupGame {
         receiverId: this.activeTradePartnerId,
         offer: {
           cash: offerCash,
-          properties: Array.from(this.tradeOfferProperties)
+          properties: offerProps
         },
         request: {
           cash: requestCash,
-          properties: Array.from(this.tradeRequestProperties)
+          properties: reqProps
         }
       });
       this.closeAllModals();
@@ -3420,7 +3646,37 @@ class RichupGame {
     this.showToast('Trade cancelled / declined');
   }
 
-  // ================= Live Chat System =================
+  // ================= Quick Reaction System (With Anti-Spam Cooldown) =================
+  sendQuickReaction(emoji) {
+    if (!emoji) return;
+    const now = Date.now();
+    this.reactionBurstHistory = (this.reactionBurstHistory || []).filter(t => now - t < 3000);
+
+    if (this.reactionBurstHistory.length >= 3 || (now - (this.lastReactionTime || 0) < 800)) {
+      this.showToast('⏳ Reaction cooldown! Please avoid spamming.', 'warning');
+      this.applyReactionCooldownVisuals(1000);
+      return;
+    }
+
+    this.reactionBurstHistory.push(now);
+    this.lastReactionTime = now;
+    this.applyReactionCooldownVisuals(800);
+
+    this.sendAction({
+      action: 'SEND_REACTION',
+      emoji: emoji
+    });
+  }
+
+  applyReactionCooldownVisuals(durationMs = 800) {
+    const btns = document.querySelectorAll('.reaction-btn');
+    btns.forEach(b => b.classList.add('cooldown'));
+    setTimeout(() => {
+      btns.forEach(b => b.classList.remove('cooldown'));
+    }, durationMs);
+  }
+
+  // ================= Live Chat System (With Anti-Spam Rate Limiting) =================
   sendChatMessage(context = 'game') {
     const inputId = context === 'lobby' ? 'lobby-chat-input' : 'chat-input';
     const input = document.getElementById(inputId);
@@ -3428,9 +3684,36 @@ class RichupGame {
     const text = input.value.trim();
     if (!text) return;
 
+    const now = Date.now();
+    this.chatBurstHistory = (this.chatBurstHistory || []).filter(t => now - t < 5000);
+
+    // 1. Curb duplicate message spam within 5 seconds
+    if (text === this.lastChatText && (now - (this.lastChatTime || 0) < 5000)) {
+      this.showToast('⚠️ Please do not repeat the exact same message.', 'warning');
+      return;
+    }
+
+    // 2. Curb rapid message rate (max 1 per 1.0s or max 3 per 5s)
+    if (this.chatBurstHistory.length >= 3 || (now - (this.lastChatTime || 0) < 1000)) {
+      this.showToast('⏳ Chat cooldown! Please wait a moment.', 'warning');
+      input.disabled = true;
+      const originalPlaceholder = input.placeholder;
+      input.placeholder = '⏳ Chat cooldown active...';
+      setTimeout(() => {
+        input.disabled = false;
+        input.placeholder = originalPlaceholder;
+        input.focus();
+      }, 1500);
+      return;
+    }
+
+    this.chatBurstHistory.push(now);
+    this.lastChatTime = now;
+    this.lastChatText = text;
+
     this.sendAction({
       action: 'SEND_CHAT',
-      text: text
+      text: text.substring(0, 200)
     });
 
     input.value = '';
