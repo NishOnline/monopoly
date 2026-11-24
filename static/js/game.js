@@ -166,9 +166,9 @@ class RichupGame {
     if (fsBtn) {
       fsBtn.addEventListener('click', () => {
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
+          document.documentElement.requestFullscreen().catch(() => { });
         } else {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen().catch(() => { });
         }
       });
     }
@@ -688,7 +688,7 @@ class RichupGame {
             playerId: this.playerId
           }));
           this.ws.close();
-        } catch (e) {}
+        } catch (e) { }
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -870,7 +870,7 @@ class RichupGame {
     const code = this.roomId;
     if (!code) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(code).catch(() => {});
+      navigator.clipboard.writeText(code).catch(() => { });
     }
     const toast = document.getElementById('copy-code-toast');
     if (toast) {
@@ -1502,8 +1502,8 @@ class RichupGame {
     newLogs.forEach(l => this._seenLogIds.add(l.id));
 
     // Rent paid sound effect
-    const rentLog = newLogs.find(l => 
-      l.category === 'rent' || 
+    const rentLog = newLogs.find(l =>
+      l.category === 'rent' ||
       (l.text && (l.text.includes('rent') || l.text.includes('owes $')))
     );
     if (rentLog && window.soundEngine && typeof window.soundEngine.rentPaid === 'function') {
@@ -1511,9 +1511,9 @@ class RichupGame {
     }
 
     // Vacation jackpot popup box
-    const jackpotLog = newLogs.find(l => 
-      l.category === 'vacation' || 
-      l.category === 'jackpot' || 
+    const jackpotLog = newLogs.find(l =>
+      l.category === 'vacation' ||
+      l.category === 'jackpot' ||
       (l.text && (l.text.includes('Vacation jackpot') || l.text.includes('free parking')))
     );
     if (jackpotLog) {
@@ -1537,8 +1537,8 @@ class RichupGame {
 
     // Fallback: Check newLogs for card draw events
     if (!cardShown) {
-      const cardLog = newLogs.find(l => 
-        l.category === 'card' || 
+      const cardLog = newLogs.find(l =>
+        l.category === 'card' ||
         (l.text && (l.text.includes('drew ') || l.text.includes('Surprise:') || l.text.includes('Treasure:')))
       );
       if (cardLog) {
@@ -1970,7 +1970,15 @@ class RichupGame {
       token.style.borderColor = darkBorder;
       token.style.setProperty('--pcolor', p.color);
       token.style.setProperty('--pdark', darkBorder);
-      token.title = `${p.name} (${p.cash < 0 ? `-$${Math.abs(p.cash)}` : `$${p.cash}`})`;
+
+      // Jail state: reduced brightness/contrast when in prison, returns to OG when fine paid / freed
+      if (p.in_jail) {
+        token.classList.add('in-jail');
+        token.title = `${p.name} ⛓️ (In Jail: Pay $50, roll doubles, or use card)`;
+      } else {
+        token.classList.remove('in-jail');
+        token.title = `${p.name} (${p.cash < 0 ? `-$${Math.abs(p.cash)}` : `$${p.cash}`})`;
+      }
 
       // Disconnect status badge over token on the board
       let discBadge = token.querySelector('.token-disconnect-badge');
@@ -2562,7 +2570,7 @@ class RichupGame {
 
               <div class="player-card-top">
                 <div class="player-info-left">
-                  <div class="player-avatar-small" style="background-color:${p.color};border-color:${darkenColor(p.color, 0.35)};">${p.avatar}</div>
+                  <div class="player-avatar-small ${p.in_jail ? 'in-jail' : ''}" style="background-color:${p.color};border-color:${darkenColor(p.color, 0.35)};">${p.avatar}</div>
                   <div class="player-name-col">
                     <div class="player-name-text">
                       ${p.name}
@@ -2699,6 +2707,11 @@ class RichupGame {
       avatarEl.innerText = p.avatar;
       avatarEl.style.backgroundColor = p.color;
       avatarEl.style.borderColor = darkenColor(p.color, 0.35);
+      if (p.in_jail) {
+        avatarEl.classList.add('in-jail');
+      } else {
+        avatarEl.classList.remove('in-jail');
+      }
     }
 
     // Render properties grid
@@ -3845,7 +3858,7 @@ class RichupGame {
           <div class="trade-list-item" onclick="game.openTradeDetailModal('${trade.id}', true)">
             <div class="trade-item-header">
               <span class="trade-status-badge ${badgeClass}">${badgeText}</span>
-              <span style="font-size:0.68rem;color:var(--text-dim);">${trade.resolved_at ? new Date(trade.resolved_at * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+              <span style="font-size:0.68rem;color:var(--text-dim);">${trade.resolved_at ? new Date(trade.resolved_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             </div>
             <div class="trade-item-text">
               ${titleText}
@@ -4060,7 +4073,7 @@ class RichupGame {
           <div class="trade-list-item">
             <div class="trade-item-header">
               <span class="trade-status-badge ${isWon ? 'accepted' : 'declined'}">${isWon ? 'Sold' : 'Unsold'}</span>
-              <span style="font-size:0.68rem;color:var(--text-dim);">${item.time ? new Date(item.time * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</span>
+              <span style="font-size:0.68rem;color:var(--text-dim);">${item.time ? new Date(item.time * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             </div>
             <div class="trade-item-text">
               ${isWon ? `<strong>${item.tile_name}</strong> won by <strong>${item.winner_name}</strong> for <strong>$${item.bid}</strong>` : `<strong>${item.tile_name}</strong> ended with no bids`}

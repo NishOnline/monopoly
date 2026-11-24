@@ -380,33 +380,18 @@
                   <div class="setup-toggle-label">BOT DIFFICULTY</div>
                   <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
                     <button type="button" class="seg-opt" data-val="conscious"
+                      onclick="game.setBotDifficulty('conscious')"
                       title="Conscious: Casual, friendly, generous trades">Conscious</button>
                     <span class="seg-divider">/</span>
                     <button type="button" class="seg-opt active" data-val="balanced"
+                      onclick="game.setBotDifficulty('balanced')"
                       title="Balanced: Standard competitive AI">Balanced</button>
                     <span class="seg-divider">/</span>
                     <button type="button" class="seg-opt" data-val="determined"
+                      onclick="game.setBotDifficulty('determined')"
                       title="Determined: Hardest, ruthless trader, blocks sets">Determined 🔥</button>
                   </div>
-
-                  <!-- Bot Difficulty Selection -->
-                  <div class="setup-toggle-card">
-                    <div class="setup-toggle-label">BOT DIFFICULTY</div>
-                    <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
-                      <button type="button" class="seg-opt" data-val="conscious"
-                        onclick="game.setBotDifficulty('conscious')"
-                        title="Conscious: Casual, friendly, generous trades">Conscious</button>
-                      <span class="seg-divider">/</span>
-                      <button type="button" class="seg-opt active" data-val="balanced"
-                        onclick="game.setBotDifficulty('balanced')"
-                        title="Balanced: Standard competitive AI">Balanced</button>
-                      <span class="seg-divider">/</span>
-                      <button type="button" class="seg-opt" data-val="determined"
-                        onclick="game.setBotDifficulty('determined')"
-                        title="Determined: Hardest, ruthless trader, blocks sets">Determined 🔥</button>
-                    </div>
-                    <input type="hidden" id="setting-bot-difficulty" value="balanced">
-                  </div>
+                  <input type="hidden" id="setting-bot-difficulty" value="balanced">
                 </div>
               </div>
             </div>
@@ -908,8 +893,8 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="/js/audio.js?v=20261124_03"></script>
-  <script src="/js/game.js?v=20261124_03"></script>
+  <script src="/js/audio.js?v=20261124_04"></script>
+  <script src="/js/game.js?v=20261124_04"></script>
 </body>
 
 </html>
