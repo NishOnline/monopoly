@@ -2104,7 +2104,12 @@ class RichupGame {
   }
 
   animatePlayerSwishWithPause(p, token, startPos, cardPos, endPos, card) {
+    if (!this.animatingTokens) this.animatingTokens = {};
+    this.animatingTokens[p.id] = endPos;
     this.animatePlayerSwish(p, token, startPos, cardPos, () => {
+      // Keep token marked as animating during the card pause and second leg
+      if (!this.animatingTokens) this.animatingTokens = {};
+      this.animatingTokens[p.id] = endPos;
       // Pause at the card tile so the player sees their token landing on Chance / Treasure!
       if (card) {
         const cardType = card.type === 'chance' ? 'surprise' : 'treasure';
@@ -2113,13 +2118,16 @@ class RichupGame {
           window.soundEngine.cardEffect();
         }
       }
-      setTimeout(() => {
+      const pauseTimer = setTimeout(() => {
         this.animatePlayerSwish(p, token, cardPos, endPos);
       }, 1200);
-    });
+      if (!this.activeSwishTimers) this.activeSwishTimers = {};
+      if (!this.activeSwishTimers[p.id]) this.activeSwishTimers[p.id] = [];
+      this.activeSwishTimers[p.id].push(pauseTimer);
+    }, { keepAnimating: true });
   }
 
-  animatePlayerSwish(p, token, startPos, endPos, onComplete = null) {
+  animatePlayerSwish(p, token, startPos, endPos, onComplete = null, opts = {}) {
     if (!this.activeSwishTimers) this.activeSwishTimers = {};
     if (this.activeSwishTimers[p.id]) {
       this.activeSwishTimers[p.id].forEach(t => clearTimeout(t));
@@ -2153,7 +2161,10 @@ class RichupGame {
     }
 
     if (path.length === 0) {
-      delete this.animatingTokens[p.id];
+      if (!opts.keepAnimating) {
+        delete this.animatingTokens[p.id];
+        this.renderCenterDeck();
+      }
       if (onComplete) onComplete();
       return;
     }
@@ -2174,10 +2185,12 @@ class RichupGame {
         }
 
         if (idx === path.length - 1) {
-          delete this.animatingTokens[p.id];
           setTimeout(() => {
             token.classList.remove('swishing');
-            this.renderCenterDeck();
+            if (!opts.keepAnimating) {
+              delete this.animatingTokens[p.id];
+              this.renderCenterDeck();
+            }
             if (onComplete) onComplete();
           }, stepInterval);
         }
@@ -2276,6 +2289,12 @@ class RichupGame {
     // While dice are actively tumbling, display rolling status and hold action buttons
     if (this.isRolling) {
       if (promptEl) promptEl.innerText = `🎲 Rolling dice...`;
+      return;
+    }
+
+    // While the active player's token is still moving/displacing, hold action buttons (like End Turn / Buy)
+    if (currPlayer && this.animatingTokens && this.animatingTokens[currPlayer.id] !== undefined) {
+      if (promptEl) promptEl.innerText = `🏃 ${currPlayer.name} is moving...`;
       return;
     }
 
