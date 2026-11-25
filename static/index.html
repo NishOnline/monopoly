@@ -224,191 +224,190 @@
           <div class="setup-main-workspace" id="setup-main-workspace">
             <!-- Main Glassmorphic Setup Card -->
             <div class="richup-setup-card">
-            <!-- Left Column: Sliders & Bot Action -->
-            <div class="setup-col-left">
-              <!-- Starting Cash (1000, 1500, 2000, 2500) -->
-              <div class="setup-slider-section">
-                <div class="setup-section-heading">STARTING CASH</div>
-                <div class="setup-stepper-row">
-                  <button type="button" class="setup-stepper-btn" id="btn-cash-minus" title="Decrease $500">−</button>
-                  <div class="setup-slider-wrapper">
-                    <input type="range" id="setting-cash" min="1000" max="2500" step="500" value="1500"
-                      class="setup-golden-slider">
-                    <div class="setup-slider-badge-wrap">
-                      <div class="setup-slider-badge" id="badge-cash-val">$1,500</div>
+              <!-- Left Column: Sliders & Bot Action -->
+              <div class="setup-col-left">
+                <!-- Starting Cash (1000, 1500, 2000, 2500) -->
+                <div class="setup-slider-section">
+                  <div class="setup-section-heading">STARTING CASH</div>
+                  <div class="setup-stepper-row">
+                    <button type="button" class="setup-stepper-btn" id="btn-cash-minus" title="Decrease $500">−</button>
+                    <div class="setup-slider-wrapper">
+                      <input type="range" id="setting-cash" min="1000" max="2500" step="500" value="1500"
+                        class="setup-golden-slider">
+                      <div class="setup-slider-badge-wrap">
+                        <div class="setup-slider-badge" id="badge-cash-val">$1,500</div>
+                      </div>
                     </div>
+                    <button type="button" class="setup-stepper-btn" id="btn-cash-plus" title="Increase $500">+</button>
                   </div>
-                  <button type="button" class="setup-stepper-btn" id="btn-cash-plus" title="Increase $500">+</button>
+                  <div class="setup-slider-range-labels">
+                    <span>$1,000</span>
+                    <span>$2,500</span>
+                  </div>
                 </div>
-                <div class="setup-slider-range-labels">
-                  <span>$1,000</span>
-                  <span>$2,500</span>
+
+                <!-- Turn Timer (Min 45s, Max 150s) -->
+                <div class="setup-slider-section">
+                  <div class="setup-section-heading">TURN TIMER</div>
+                  <div class="setup-slider-wrapper no-stepper">
+                    <input type="range" id="setting-timer-slider" min="0" max="4" step="1" value="0"
+                      class="setup-golden-slider timer-slider">
+                  </div>
+                  <div class="setup-slider-range-labels timer-ticks">
+                    <span data-idx="0" class="active">45s</span>
+                    <span data-idx="1">60s</span>
+                    <span data-idx="2">90s</span>
+                    <span data-idx="3">120s</span>
+                    <span data-idx="4">150s</span>
+                  </div>
+                  <input type="hidden" id="setting-timer" value="45">
+                </div>
+
+                <!-- Game Mode Selection (Individual vs Alliances) -->
+                <div class="setup-toggle-card setup-gamemode-left">
+                  <div class="setup-toggle-label">GAME MODE</div>
+                  <div class="richup-segmented-pill" id="segmented-game-mode">
+                    <button type="button" class="seg-opt active" data-val="individual"
+                      onclick="game.setGameMode('individual')"
+                      title="Individual: Every player for themselves">Individual</button>
+                    <span class="seg-divider">/</span>
+                    <button type="button" class="seg-opt" data-val="alliances" onclick="game.setGameMode('alliances')"
+                      title="Alliances: Teammates don't pay rent to each other">Alliances </button>
+                  </div>
+                  <input type="hidden" id="setting-game-mode" value="individual">
+                </div>
+
+                <!-- Add AI Bot Button -->
+                <div class="setup-bot-action-wrap">
+                  <button type="button" class="btn-richup-add-bot" id="btn-add-bot">
+                    <span>🤖 ADD AI BOT</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- Turn Timer (Min 45s, Max 150s) -->
-              <div class="setup-slider-section">
-                <div class="setup-section-heading">TURN TIMER</div>
-                <div class="setup-slider-wrapper no-stepper">
-                  <input type="range" id="setting-timer-slider" min="0" max="4" step="1" value="0"
-                    class="setup-golden-slider timer-slider">
-                </div>
-                <div class="setup-slider-range-labels timer-ticks">
-                  <span data-idx="0" class="active">45s</span>
-                  <span data-idx="1">60s</span>
-                  <span data-idx="2">90s</span>
-                  <span data-idx="3">120s</span>
-                  <span data-idx="4">150s</span>
-                </div>
-                <input type="hidden" id="setting-timer" value="45">
-              </div>
+              <!-- Right Column: 2x3 Grid of Richup Switches -->
+              <div class="setup-col-right">
+                <div class="setup-toggles-grid">
+                  <!-- Property Auctions (Green when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">PROPERTY AUCTIONS</div>
+                    <button type="button" class="richup-pill-toggle on green" id="toggle-auction"
+                      data-setting="setting-auction" data-color="green">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-auction" value="true">
+                  </div>
 
-              <!-- Game Mode Selection (Individual vs Alliances) -->
-              <div class="setup-toggle-card setup-gamemode-left">
-                <div class="setup-toggle-label">GAME MODE</div>
-                <div class="richup-segmented-pill" id="segmented-game-mode">
-                  <button type="button" class="seg-opt active" data-val="individual"
-                    onclick="game.setGameMode('individual')"
-                    title="Individual: Every player for themselves">Individual</button>
-                  <span class="seg-divider">/</span>
-                  <button type="button" class="seg-opt" data-val="alliances"
-                    onclick="game.setGameMode('alliances')"
-                    title="Alliances: Teammates don't pay rent to each other">Alliances 🤝</button>
-                </div>
-                <input type="hidden" id="setting-game-mode" value="individual">
-              </div>
+                  <!-- 2x Rent on Full Set (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">2x RENT ON FULL SET</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-double-rent"
+                      data-setting="setting-double-rent" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-double-rent" value="true">
+                  </div>
 
-              <!-- Add AI Bot Button -->
-              <div class="setup-bot-action-wrap">
-                <button type="button" class="btn-richup-add-bot" id="btn-add-bot">
-                  <span>🤖 ADD AI BOT</span>
-                </button>
+                  <!-- Rent While in Prison (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">RENT WHILE IN PRISON</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-prison-rent"
+                      data-setting="setting-prison-rent" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-prison-rent" value="true">
+                  </div>
+
+                  <!-- Mortgage Properties (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">MORTGAGE PROPERTIES</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-mortgage"
+                      data-setting="setting-mortgage" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-mortgage" value="true">
+                  </div>
+
+                  <!-- Even Houses Build (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">EVEN HOUSES BUILD</div>
+                    <button type="button" class="richup-pill-toggle off red" id="toggle-even-build"
+                      data-setting="setting-even-build" data-color="gold">
+                      <span class="toggle-text">OFF</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-even-build" value="false">
+                  </div>
+
+                  <!-- Advanced Shops (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">ADVANCED SHOPS</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-advanced-shops"
+                      data-setting="setting-advanced-shops" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-advanced-shops" value="true">
+                  </div>
+
+                  <!-- Random Events (Gold when ON) -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">RANDOM EVENTS</div>
+                    <button type="button" class="richup-pill-toggle on gold" id="toggle-random-events"
+                      data-setting="setting-random-events" data-color="gold">
+                      <span class="toggle-text">ON</span>
+                      <span class="toggle-knob"></span>
+                    </button>
+                    <input type="hidden" id="setting-random-events" value="true">
+                  </div>
+
+                  <!-- Board Map Selection -->
+                  <div class="setup-toggle-card">
+                    <div class="setup-toggle-label">MAP</div>
+                    <div class="richup-segmented-pill" id="segmented-map">
+                      <button type="button" class="seg-opt active" data-val="classic">Classic</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt" data-val="extended">Extended</button>
+                    </div>
+                    <input type="hidden" id="setting-map" value="classic">
+                  </div>
+
+                  <!-- Room Visibility -->
+                  <div class="setup-toggle-card span-2">
+                    <div class="setup-toggle-label">ROOM VISIBILITY</div>
+                    <div class="richup-segmented-pill" id="segmented-privacy">
+                      <button type="button" class="seg-opt" data-val="true">Public</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt active" data-val="false">Private</button>
+                    </div>
+                    <input type="hidden" id="setting-privacy" value="false">
+                  </div>
+
+                  <!-- Bot Difficulty Selection -->
+                  <div class="setup-toggle-card span-2">
+                    <div class="setup-toggle-label">BOT DIFFICULTY</div>
+                    <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
+                      <button type="button" class="seg-opt" data-val="conscious"
+                        onclick="game.setBotDifficulty('conscious')"
+                        title="Conscious: Casual, friendly, generous trades">Conscious</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt active" data-val="balanced"
+                        onclick="game.setBotDifficulty('balanced')"
+                        title="Balanced: Standard competitive AI">Balanced</button>
+                      <span class="seg-divider">/</span>
+                      <button type="button" class="seg-opt" data-val="determined"
+                        onclick="game.setBotDifficulty('determined')"
+                        title="Determined: Hardest, ruthless trader, blocks sets">Determined 🔥</button>
+                    </div>
+                    <input type="hidden" id="setting-bot-difficulty" value="balanced">
+                  </div>
+                </div>
               </div>
             </div>
-
-            <!-- Right Column: 2x3 Grid of Richup Switches -->
-            <div class="setup-col-right">
-              <div class="setup-toggles-grid">
-                <!-- Property Auctions (Green when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">PROPERTY AUCTIONS</div>
-                  <button type="button" class="richup-pill-toggle on green" id="toggle-auction"
-                    data-setting="setting-auction" data-color="green">
-                    <span class="toggle-text">ON</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-auction" value="true">
-                </div>
-
-                <!-- 2x Rent on Full Set (Gold when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">2x RENT ON FULL SET</div>
-                  <button type="button" class="richup-pill-toggle on gold" id="toggle-double-rent"
-                    data-setting="setting-double-rent" data-color="gold">
-                    <span class="toggle-text">ON</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-double-rent" value="true">
-                </div>
-
-                <!-- Rent While in Prison (Gold when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">RENT WHILE IN PRISON</div>
-                  <button type="button" class="richup-pill-toggle on gold" id="toggle-prison-rent"
-                    data-setting="setting-prison-rent" data-color="gold">
-                    <span class="toggle-text">ON</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-prison-rent" value="true">
-                </div>
-
-                <!-- Mortgage Properties (Gold when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">MORTGAGE PROPERTIES</div>
-                  <button type="button" class="richup-pill-toggle on gold" id="toggle-mortgage"
-                    data-setting="setting-mortgage" data-color="gold">
-                    <span class="toggle-text">ON</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-mortgage" value="true">
-                </div>
-
-                <!-- Even Houses Build (Gold when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">EVEN HOUSES BUILD</div>
-                  <button type="button" class="richup-pill-toggle off red" id="toggle-even-build"
-                    data-setting="setting-even-build" data-color="gold">
-                    <span class="toggle-text">OFF</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-even-build" value="false">
-                </div>
-
-                <!-- Advanced Shops (Gold when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">ADVANCED SHOPS</div>
-                  <button type="button" class="richup-pill-toggle on gold" id="toggle-advanced-shops"
-                    data-setting="setting-advanced-shops" data-color="gold">
-                    <span class="toggle-text">ON</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-advanced-shops" value="true">
-                </div>
-
-                <!-- Random Events (Gold when ON) -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">RANDOM EVENTS</div>
-                  <button type="button" class="richup-pill-toggle on gold" id="toggle-random-events"
-                    data-setting="setting-random-events" data-color="gold">
-                    <span class="toggle-text">ON</span>
-                    <span class="toggle-knob"></span>
-                  </button>
-                  <input type="hidden" id="setting-random-events" value="true">
-                </div>
-
-                <!-- Board Map Selection -->
-                <div class="setup-toggle-card">
-                  <div class="setup-toggle-label">MAP</div>
-                  <div class="richup-segmented-pill" id="segmented-map">
-                    <button type="button" class="seg-opt active" data-val="classic">Classic</button>
-                    <span class="seg-divider">/</span>
-                    <button type="button" class="seg-opt" data-val="extended">Extended</button>
-                  </div>
-                  <input type="hidden" id="setting-map" value="classic">
-                </div>
-
-                <!-- Room Visibility -->
-                <div class="setup-toggle-card span-2">
-                  <div class="setup-toggle-label">ROOM VISIBILITY</div>
-                  <div class="richup-segmented-pill" id="segmented-privacy">
-                    <button type="button" class="seg-opt" data-val="true">Public</button>
-                    <span class="seg-divider">/</span>
-                    <button type="button" class="seg-opt active" data-val="false">Private</button>
-                  </div>
-                  <input type="hidden" id="setting-privacy" value="false">
-                </div>
-
-                <!-- Bot Difficulty Selection -->
-                <div class="setup-toggle-card span-2">
-                  <div class="setup-toggle-label">BOT DIFFICULTY</div>
-                  <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
-                    <button type="button" class="seg-opt" data-val="conscious"
-                      onclick="game.setBotDifficulty('conscious')"
-                      title="Conscious: Casual, friendly, generous trades">Conscious</button>
-                    <span class="seg-divider">/</span>
-                    <button type="button" class="seg-opt active" data-val="balanced"
-                      onclick="game.setBotDifficulty('balanced')"
-                      title="Balanced: Standard competitive AI">Balanced</button>
-                    <span class="seg-divider">/</span>
-                    <button type="button" class="seg-opt" data-val="determined"
-                      onclick="game.setBotDifficulty('determined')"
-                      title="Determined: Hardest, ruthless trader, blocks sets">Determined 🔥</button>
-                  </div>
-                  <input type="hidden" id="setting-bot-difficulty" value="balanced">
-                </div>
-              </div>
-            </div>
-          </div>
 
             <!-- Alliances Team Builder Panel (Opens right on desktop, down on mobile) -->
             <aside class="alliances-panel" id="alliances-panel" style="display:none;">
@@ -800,28 +799,39 @@
         <p style="margin-bottom:12px;"><strong style="color:#fff;">🎯 Goal:</strong> Bankrupt your opponents by buying
           properties, collecting rent, and building houses, hotels, and shops!</p>
         <p style="margin-bottom:12px;"><strong style="color:#fff;">🤝 Game Modes (Individual &amp; Alliances):</strong>
-          Play solo in <strong>Individual</strong> mode, or choose <strong>Alliances</strong> in Room Setup to form teams—teammates
-          <strong>do not pay rent</strong> when landing on each other's properties.</p>
+          Play solo in <strong>Individual</strong> mode, or choose <strong>Alliances</strong> in Room Setup to form
+          teams—teammates
+          <strong>do not pay rent</strong> when landing on each other's properties.
+        </p>
         <p style="margin-bottom:12px;"><strong style="color:#fff;">🗺️ Classic &amp; Extended Maps:</strong> Choose the
           standard 40-tile <strong>Classic</strong> board or the 48-tile <strong>Extended</strong> board featuring extra
           countries, Airports, and a 3rd Utility (up to 15× dice rent when owning all 3).</p>
         <p style="margin-bottom:12px;"><strong style="color:#fff;">🎲 Rolling Doubles &amp; Prison:</strong> Rolling
           doubles gives you another turn; 3 consecutive doubles sends you to Prison. Escape by rolling doubles, paying a
-          <strong>$50 fine</strong>, or using a Jail Free card. Depending on room settings, jailed owners may collect $0 rent.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies, Houses &amp; Advanced Shops 🏪:</strong>
-          Own all properties in a color group to form a Monopoly (2× base rent when unimproved, if enabled) and build up to
+          <strong>$50 fine</strong>, or using a Jail Free card. Depending on room settings, jailed owners may collect $0
+          rent.
+        </p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies, Houses &amp; Advanced Shops
+            🏪:</strong>
+          Own all properties in a color group to form a Monopoly (2× base rent when unimproved, if enabled) and build up
+          to
           4 houses + 1 hotel. With <strong>Advanced Shops</strong> enabled, build a Shop on any owned street for
-          <strong>+25% rent</strong> and <strong>+60% mortgage value</strong>.</p>
+          <strong>+25% rent</strong> and <strong>+60% mortgage value</strong>.
+        </p>
         <p style="margin-bottom:12px;"><strong style="color:#fff;">⚡ Random Market Events:</strong> Periodic global
-          events (such as Inflation, Tourism Surge, Market Correction, or Wealth Levy) dynamically alter rents, payouts, and taxes.</p>
+          events (such as Inflation, Tourism Surge, Market Correction, or Wealth Levy) dynamically alter rents, payouts,
+          and taxes.</p>
         <p style="margin-bottom:12px;"><strong style="color:#fff;">⚖️ Auctions, Trading &amp; Debt Recovery:</strong>
-          Declined properties go to a Live Public Auction starting at $10. Propose or negotiate trades anytime—even if you
-          are in <strong>debt (negative cash)</strong>, you can sell/trade unbuilt properties for cash to stay in the game.</p>
+          Declined properties go to a Live Public Auction starting at $10. Propose or negotiate trades anytime—even if
+          you
+          are in <strong>debt (negative cash)</strong>, you can sell/trade unbuilt properties for cash to stay in the
+          game.</p>
         <p style="margin-bottom:12px;"><strong style="color:#fff;">🤖 AI Bot Difficulty:</strong> Add bots in Room Setup
           with <strong>Conscious</strong> (casual), <strong>Balanced</strong> (standard), or <strong>Determined</strong>
           (tactical &amp; ruthless) difficulty.</p>
         <p style="margin-bottom:0;"><strong style="color:#fff;">🌴 Vacation (Free Parking):</strong> Taxes and fines go
-          into the Vacation pool (shown on the Vacation tile). Landing on Vacation collects the entire pot and skips your next turn.</p>
+          into the Vacation pool (shown on the Vacation tile). Landing on Vacation collects the entire pot and skips
+          your next turn.</p>
       </div>
     </div>
   </div>
