@@ -5460,5 +5460,200 @@ body:has(#screen-welcome.active) .top-nav {
   to { transform: rotate(360deg); }
 }
 
+/* ========================================================
+   Mobile & Small-Screen Polish (Main Menu, Setup & Board)
+   ======================================================== */
+@media (max-width: 860px) {
+  .richup-setup-card,
+  .richup-setup-container.alliances-open .richup-setup-card {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px 16px;
+  }
+
+  .richup-setup-footer {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .richup-setup-topbar {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .richup-top-btn {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .richup-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .richup-setup-header {
+    order: 3;
+    flex: 1 1 100%;
+    margin-top: 2px;
+  }
+
+  .richup-3d-title {
+    font-size: clamp(2rem, 9vw, 3rem);
+  }
+
+  .richup-setup-subtitle {
+    font-size: clamp(0.85rem, 3.8vw, 1.15rem);
+    letter-spacing: 2px;
+  }
+
+  .richup-segmented-pill {
+    height: auto;
+    min-height: 38px;
+    padding: 3px 4px;
+  }
+
+  .richup-segmented-pill .seg-opt,
+  .richup-segmented-pill.three-options .seg-opt {
+    font-size: 0.7rem;
+    padding: 6px 5px;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  .setup-toggle-label {
+    white-space: normal;
+    line-height: 1.15;
+    font-size: 0.68rem;
+  }
+
+  /* Scale Board Corner & Property Tiles cleanly on mobile */
+  .tile-corner {
+    padding: 2px !important;
+    border-radius: 5px;
+  }
+
+  .start-text-glow {
+    font-size: clamp(0.55rem, 2.5vw, 1.1rem);
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+
+  .start-arrow-badge {
+    font-size: clamp(0.58rem, 2.5vw, 1.05rem);
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  .corner-jail-passing,
+  .corner-jail-label {
+    font-size: clamp(5.5px, 1.45vw, 9px);
+    letter-spacing: 0.2px;
+    line-height: 1.05;
+    margin: 0;
+  }
+
+  .cartoon-jail-svg,
+  .cartoon-vacation-svg,
+  .cartoon-skull-svg {
+    width: clamp(15px, 4.8vw, 32px);
+    height: clamp(15px, 4.8vw, 32px);
+  }
+
+  .corner-vacation-title,
+  .corner-gotojail-title {
+    font-size: clamp(5.5px, 1.5vw, 10px);
+    letter-spacing: 0.2px;
+    line-height: 1.05;
+    margin-top: 1px;
+  }
+
+  .vacation-jackpot-pill {
+    font-size: clamp(5.5px, 1.5vw, 10px);
+    padding: 0 3px;
+    margin-top: 1px;
+  }
+
+  .tile.edge-top,
+  .tile.edge-bottom {
+    padding: 2px 1px;
+  }
+
+  .tile.edge-left,
+  .tile.edge-right {
+    padding: 1px 2px;
+  }
+
+  .richup-flag-circle,
+  .edge-left .richup-flag-circle,
+  .edge-right .richup-flag-circle {
+    width: clamp(11px, 3.2vw, 18px);
+    height: clamp(11px, 3.2vw, 18px);
+    min-width: clamp(11px, 3.2vw, 18px);
+    min-height: clamp(11px, 3.2vw, 18px);
+  }
+
+  .richup-city-name,
+  .edge-top .richup-city-name,
+  .edge-bottom .richup-city-name,
+  .edge-left .richup-city-name,
+  .edge-right .richup-city-name {
+    font-size: clamp(5.5px, 1.55vw, 9.5px);
+    letter-spacing: -0.25px;
+    max-width: none;
+    line-height: 1.05;
+  }
+
+  .edge-left .richup-tile-info,
+  .edge-right .richup-tile-info {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .richup-price-tag {
+    font-size: clamp(5.2px, 1.45vw, 8.5px);
+    padding: 1px 2px;
+    border-radius: 3px;
+    letter-spacing: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .setup-toggles-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px 10px;
+  }
+
+  /* Give Map, Room Visibility, and Bot Difficulty full row width on narrow phones */
+  #segmented-map,
+  #segmented-visibility,
+  #segmented-bot-difficulty {
+    width: 100%;
+  }
+
+  .setup-toggle-card:has(#segmented-map) {
+    grid-column: 1 / -1;
+  }
+
+  .monopoly-board.map-classic .edge-top .color-bar {
+    top: 2px; left: 2px; right: 2px; height: 6px; border-radius: 3px;
+  }
+  .monopoly-board.map-classic .edge-bottom .color-bar {
+    bottom: 2px; left: 2px; right: 2px; height: 6px; border-radius: 3px;
+  }
+  .monopoly-board.map-classic .edge-left .color-bar {
+    top: 2px; bottom: 2px; left: 2px; width: 6px; border-radius: 3px;
+  }
+  .monopoly-board.map-classic .edge-right .color-bar {
+    top: 2px; bottom: 2px; right: 2px; width: 6px; border-radius: 3px;
+  }
+}
+
 
 
