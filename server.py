@@ -335,7 +335,7 @@ async def handle_ws(request):
                     if room.state == "PLAYING":
                         await ws.send_str(json.dumps({
                             "type": "GAME_STATE",
-                            "data": room.get_state_dict()
+                            "data": room.serialize()
                         }))
                     elif current_player_id == room.host_id and room.state == "LOBBY":
                         if room.start_game():
@@ -692,95 +692,96 @@ async def game_tick_loop():
             now = time.time()
 
             for room_id, room in list(rooms.items()):
-                # Clean up / delete room if no real players or 0 players total
-                if check_and_cleanup_room(room_id):
-                    continue
+                try:
+                    # Clean up / delete room if no real players or 0 players total
+                    if check_and_cleanup_room(room_id):
+                        continue
 
-                if room.state != "PLAYING":
-                    continue
+                    if room.state != "PLAYING":
+                        continue
 
-                updated = False
-                bot_ai = room_bots.get(room_id)
+                    updated = False
+                    bot_ai = room_bots.get(room_id)
 
-                # 0. Check disconnected players who exceeded 100s grace period
-                for pid, p in list(room.players.items()):
-                    if not p.get("is_bot") and not p.get("is_bankrupt") and not p.get("connected", True):
-                        deadline = p.get("disconnect_deadline")
-                        if deadline and now >= deadline:
-                            p["disconnect_deadline"] = None
-                            room.log(f"💀 {p['name']} failed to reconnect within 100s and was bankrupted.", "bankrupt", "💀", pid)
-                            if room.state == "PLAYING":
-                                room.declare_bankruptcy(pid)
-                            else:
-                                room.remove_player(pid)
-                            updated = True
-
-                # 1. Auction timer expiration (ends 3 seconds after final bet is placed)
-                if room.turn_phase == "AUCTION" and room.auction:
-                    deadline = room.auction.get("deadline")
-                    if deadline and now >= deadline:
-                        room._conclude_auction()
-                        updated = True
-
-                # 2. Turn timer countdown check for human players (auto roll / auto end turn)
-                curr = room.get_current_player()
-                if curr and not curr["is_bot"] and not curr["is_bankrupt"]:
-                    if now >= room.turn_deadline:
-                        if room.turn_phase == "WAITING_ROLL":
-                            room.roll_dice(curr["id"])
-                            updated = True
-                        elif room.turn_phase == "LANDED_ACTION":
-                            # Turn timer ran out while deciding on landed tile -> pass on property and auto end turn
-                            room.pass_property(curr["id"])
-                            room.end_turn(curr["id"])
-                            updated = True
-                        elif room.turn_phase == "WAITING_END_TURN":
-                            if curr["cash"] < 0:
-                                # Automatically declare bankruptcy if player is not able to get into positive value within turn's time
-                                room.log(f"⏰ Turn timer expired! {curr['name']} could not clear negative balance (${curr['cash']}) and went bankrupt.", "bankrupt", "💀", curr["id"])
-                                room.declare_bankruptcy(curr["id"])
+                    # 0. Check disconnected players who exceeded 100s grace period
+                    for pid, p in list(room.players.items()):
+                        if not p.get("is_bot") and not p.get("is_bankrupt") and not p.get("connected", True):
+                            deadline = p.get("disconnect_deadline")
+                            if deadline and now >= deadline:
+                                p["disconnect_deadline"] = None
+                                room.log(f"💀 {p['name']} failed to reconnect within 100s and was bankrupted.", "bankrupt", "💀", pid)
+                                if room.state == "PLAYING":
+                                    room.declare_bankruptcy(pid)
+                                else:
+                                    room.remove_player(pid)
                                 updated = True
-                            else:
-                                room.log(f"⏰ Turn timer expired! {curr['name']}'s turn automatically ended.", "turn", "⏱️", curr["id"])
+
+                    # 1. Auction timer expiration (ends 3 seconds after final bet is placed)
+                    if room.turn_phase == "AUCTION" and room.auction:
+                        deadline = room.auction.get("deadline")
+                        if deadline and now >= deadline:
+                            room._conclude_auction()
+                            updated = True
+
+                    # 2. Turn timer countdown check for human players (auto roll / auto end turn)
+                    curr = room.get_current_player()
+                    if curr and not curr["is_bot"] and not curr["is_bankrupt"]:
+                        if now >= room.turn_deadline:
+                            if room.turn_phase == "WAITING_ROLL":
+                                room.roll_dice(curr["id"])
+                                updated = True
+                            elif room.turn_phase == "LANDED_ACTION":
+                                # Turn timer ran out while deciding on landed tile -> pass on property and auto end turn
+                                room.pass_property(curr["id"])
                                 room.end_turn(curr["id"])
                                 updated = True
-                        elif room.turn_phase == "DEBT":
-                            room.declare_bankruptcy(curr["id"])
+                            elif room.turn_phase == "WAITING_END_TURN":
+                                if curr["cash"] < 0:
+                                    # Automatically declare bankruptcy if player is not able to get into positive value within turn's time
+                                    room.log(f"⏰ Turn timer expired! {curr['name']} could not clear negative balance (${curr['cash']}) and went bankrupt.", "bankrupt", "💀", curr["id"])
+                                    room.declare_bankruptcy(curr["id"])
+                                    updated = True
+                                else:
+                                    room.log(f"⏰ Turn timer expired! {curr['name']}'s turn automatically ended.", "turn", "⏱️", curr["id"])
+                                    room.end_turn(curr["id"])
+                                    updated = True
+                            elif room.turn_phase == "DEBT":
+                                room.declare_bankruptcy(curr["id"])
+                                updated = True
+
+                    # 3. Bot actions tick
+                    if bot_ai:
+                        if bot_ai.tick():
                             updated = True
 
-                # 3. Bot actions tick
-                if bot_ai:
-                    if bot_ai.tick():
-                        updated = True
+                    # 4. Broadcast pending bot reactions
+                    if getattr(room, "pending_reactions", None):
+                        for r_item in room.pending_reactions:
+                            msg_str = json.dumps({
+                                "type": "REACTION",
+                                "emoji": r_item["emoji"],
+                                "senderId": r_item["senderId"],
+                                "senderName": r_item["senderName"],
+                                "avatar": r_item.get("avatar", "🤖")
+                            })
+                            for s in list(room_sockets.get(room_id, [])):
+                                try:
+                                    await s.send_str(msg_str)
+                                except Exception:
+                                    pass
+                        room.pending_reactions = []
 
-                # 4. Broadcast pending bot reactions
-                if getattr(room, "pending_reactions", None):
-                    for r_item in room.pending_reactions:
-                        msg_str = json.dumps({
-                            "type": "REACTION",
-                            "emoji": r_item["emoji"],
-                            "senderId": r_item["senderId"],
-                            "senderName": r_item["senderName"],
-                            "avatar": r_item.get("avatar", "🤖")
-                        })
-                        for s in list(room_sockets.get(room_id, [])):
-                            try:
-                                await s.send_str(msg_str)
-                            except Exception:
-                                pass
-                    room.pending_reactions = []
-
-                if updated:
-                    await broadcast_room(room_id)
+                    if updated:
+                        await broadcast_room(room_id)
+                except Exception as room_err:
+                    logging.error(f"Exception ticking room {room_id}: {room_err}", exc_info=True)
 
         except Exception as e:
             logging.error(f"Exception in game_tick_loop: {e}", exc_info=True)
 
 
 async def api_board_info(request):
-    import importlib
     import game.board_data as bd
-    importlib.reload(bd)
     map_name = request.query.get("map", "classic").lower()
     if map_name == "standard":
         map_name = "classic"
