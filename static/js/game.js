@@ -1110,12 +1110,16 @@ class RichupGame {
         } else {
           const specPill = document.getElementById('nav-spectator-pill');
           if (specPill) specPill.style.display = 'none';
-          if (this.gameState && this.gameState.state === 'PLAYING') {
+          if (msg.roomState === 'PLAYING' || (this.gameState && this.gameState.state === 'PLAYING')) {
+            this.hideActionLoader();
             document.getElementById('screen-welcome').classList.remove('active');
             document.getElementById('game-screen').classList.add('active');
+            const topNav = document.querySelector('.top-nav');
+            if (topNav) topNav.style.display = 'flex';
             this.renderBoardSkeleton();
-            this.renderAllPlayerTokens();
-            this.updateContextControls();
+            this.renderTileStates();
+            this.renderPlayerTokens();
+            this.renderCenterDeck();
           } else {
             this.showLobbyRoomView();
           }
@@ -1434,8 +1438,8 @@ class RichupGame {
       if (this.mapsData && this.mapsData[currentMap] && (!this.boardData || this.boardData.map !== currentMap)) {
         this.boardData = { ...this.mapsData[currentMap], map: currentMap, maps: this.mapsData };
         this.renderBoardSkeleton();
-        this.renderBoardProperties();
-        this.renderAllPlayerTokens();
+        this.renderTileStates();
+        this.renderPlayerTokens();
       }
 
       // Visual indication for non-host players (keep interactive so clicking gives clear feedback)

@@ -200,7 +200,8 @@ async def handle_ws(request):
                             "roomId": room_id,
                             "playerId": player_id,
                             "isHost": (player_id == room.host_id),
-                            "isSpectator": False
+                            "isSpectator": False,
+                            "roomState": room.state
                         }))
                         await broadcast_room(room_id)
                         continue
@@ -331,7 +332,12 @@ async def handle_ws(request):
                             await broadcast_room(current_room_id)
 
                 elif action == "START_GAME":
-                    if current_player_id == room.host_id and room.state == "LOBBY":
+                    if room.state == "PLAYING":
+                        await ws.send_str(json.dumps({
+                            "type": "GAME_STATE",
+                            "data": room.get_state_dict()
+                        }))
+                    elif current_player_id == room.host_id and room.state == "LOBBY":
                         if room.start_game():
                             await broadcast_room(current_room_id)
                         else:
