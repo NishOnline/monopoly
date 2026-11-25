@@ -1323,7 +1323,7 @@ class RichupGame {
       b.classList.toggle('active', bVal === val);
     });
 
-    const container = document.querySelector('.richup-setup-container');
+    const container = document.getElementById('room-lobby-view');
     const panel = document.getElementById('alliances-panel');
     const isAlliances = (val === 'alliances');
     if (container) container.classList.toggle('alliances-open', isAlliances);
@@ -2964,7 +2964,7 @@ class RichupGame {
     if (!this.gameState) return;
     const mode = (this.gameState.settings && this.gameState.settings.game_mode) || 'individual';
     const isAlliances = (mode === 'alliances');
-    const container = document.querySelector('.richup-setup-container');
+    const container = document.getElementById('room-lobby-view');
     const panel = document.getElementById('alliances-panel');
     if (container) container.classList.toggle('alliances-open', isAlliances);
     if (panel) panel.style.display = isAlliances ? 'flex' : 'none';

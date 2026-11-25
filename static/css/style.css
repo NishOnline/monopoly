@@ -5746,6 +5746,72 @@ body:has(#screen-welcome.active) .top-nav {
   .monopoly-board.map-classic .edge-right .color-bar {
     top: 2px; bottom: 2px; right: 2px; width: 6px; border-radius: 3px;
   }
+
+  /* Extended 13x13 Map Mobile Visibility */
+  .monopoly-board.map-extended .tile-corner {
+    padding: 1.5px !important;
+  }
+  .monopoly-board.map-extended .start-text-glow {
+    font-size: clamp(0.48rem, 2.2vw, 0.95rem);
+  }
+  .monopoly-board.map-extended .start-arrow-badge {
+    font-size: clamp(0.5rem, 2.1vw, 0.9rem);
+  }
+  .monopoly-board.map-extended .cartoon-jail-svg,
+  .monopoly-board.map-extended .cartoon-vacation-svg,
+  .monopoly-board.map-extended .cartoon-skull-svg {
+    width: clamp(13px, 4.2vw, 28px);
+    height: clamp(13px, 4.2vw, 28px);
+  }
+  .monopoly-board.map-extended .corner-jail-passing,
+  .monopoly-board.map-extended .corner-jail-label,
+  .monopoly-board.map-extended .corner-vacation-title,
+  .monopoly-board.map-extended .corner-gotojail-title,
+  .monopoly-board.map-extended .vacation-jackpot-pill {
+    font-size: clamp(4.8px, 1.3vw, 8.5px);
+  }
+  .monopoly-board.map-extended .richup-flag-circle,
+  .monopoly-board.map-extended .edge-left .richup-flag-circle,
+  .monopoly-board.map-extended .edge-right .richup-flag-circle {
+    width: clamp(9px, 2.7vw, 15px);
+    height: clamp(9px, 2.7vw, 15px);
+    min-width: clamp(9px, 2.7vw, 15px);
+    min-height: clamp(9px, 2.7vw, 15px);
+  }
+  .monopoly-board.map-extended .richup-city-name,
+  .monopoly-board.map-extended .edge-top .richup-city-name,
+  .monopoly-board.map-extended .edge-bottom .richup-city-name,
+  .monopoly-board.map-extended .edge-left .richup-city-name,
+  .monopoly-board.map-extended .edge-right .richup-city-name {
+    font-size: clamp(4.8px, 1.35vw, 8.5px);
+    letter-spacing: -0.3px;
+    max-width: none;
+    line-height: 1.05;
+  }
+  .monopoly-board.map-extended .richup-price-tag {
+    font-size: clamp(4.6px, 1.3vw, 8px);
+    padding: 1px 1.5px;
+    border-radius: 2px;
+  }
+  .monopoly-board.map-extended .edge-top .color-bar {
+    top: 1.5px; left: 2px; right: 2px; height: 5px; border-radius: 3px;
+  }
+  .monopoly-board.map-extended .edge-bottom .color-bar {
+    bottom: 1.5px; left: 2px; right: 2px; height: 5px; border-radius: 3px;
+  }
+  .monopoly-board.map-extended .edge-left .color-bar {
+    top: 2px; bottom: 2px; left: 1.5px; width: 5px; border-radius: 3px;
+  }
+  .monopoly-board.map-extended .edge-right .color-bar {
+    top: 2px; bottom: 2px; right: 1.5px; width: 5px; border-radius: 3px;
+  }
+  .monopoly-board.map-extended .player-token {
+    width: 15px;
+    height: 15px;
+  }
+  .monopoly-board.map-extended .player-token .token-emoji {
+    font-size: 0.58rem;
+  }
 }
 
 
