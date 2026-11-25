@@ -5666,9 +5666,40 @@ body:has(#screen-welcome.active) .top-nav {
     gap: 4px;
     border-radius: 6px;
   }
+
+  .player-token {
+    width: 21px;
+    height: 21px;
+    border-width: 1.5px;
+  }
+
+  .player-token .token-emoji {
+    font-size: 0.82rem;
+  }
 }
 
 @media (max-width: 480px) {
+  .player-token {
+    width: 17px;
+    height: 17px;
+    border-width: 1.5px;
+  }
+
+  .player-token .token-emoji {
+    font-size: 0.65rem;
+  }
+
+  .player-token.in-jail::after {
+    font-size: 9px;
+    top: -4px;
+    right: -4px;
+  }
+
+  #tokens-tile-0 {
+    padding-left: 3px;
+    gap: 1px;
+  }
+
   .dice-scene,
   .dice-cube {
     --dice-size: 34px;
