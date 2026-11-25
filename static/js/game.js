@@ -275,6 +275,7 @@ class RichupGame {
         if (nameInput) this.playerName = nameInput.value.trim() || 'Player';
         localStorage.setItem('richup_player_name', this.playerName);
         const isPublic = document.getElementById('input-room-public')?.value === 'true';
+        this.showActionLoader();
         this.connectAndSend({
           action: 'CREATE_ROOM',
           playerId: this.playerId,
@@ -330,6 +331,9 @@ class RichupGame {
     const startBtn = document.getElementById('btn-start-game');
     if (startBtn) {
       startBtn.addEventListener('click', () => {
+        if (this.gameState && this.gameState.players && this.gameState.players.length >= 2) {
+          this.showActionLoader();
+        }
         this.sendAction({ action: 'START_GAME' });
       });
     }
@@ -1127,20 +1131,42 @@ class RichupGame {
         break;
 
       case 'ERROR':
+        this.hideActionLoader();
         this.showToast(msg.message, 'error');
         break;
 
       case 'ACTION_ERROR':
+        this.hideActionLoader();
         this.showActionReasonPopup(msg.title || 'Action Not Allowed', msg.message || 'This action is not possible.');
         break;
 
       case 'LEFT_ROOM':
+        this.hideActionLoader();
         this.resetToMainMenu();
         break;
     }
   }
 
+  showActionLoader() {
+    const loader = document.getElementById('action-loader-overlay');
+    if (loader) loader.style.display = 'flex';
+    if (this._actionLoaderTimer) clearTimeout(this._actionLoaderTimer);
+    this._actionLoaderTimer = setTimeout(() => {
+      this.hideActionLoader();
+    }, 10000);
+  }
+
+  hideActionLoader() {
+    if (this._actionLoaderTimer) {
+      clearTimeout(this._actionLoaderTimer);
+      this._actionLoaderTimer = null;
+    }
+    const loader = document.getElementById('action-loader-overlay');
+    if (loader) loader.style.display = 'none';
+  }
+
   showLobbyRoomView() {
+    this.hideActionLoader();
     const lobbyScreen = document.getElementById('lobby-screen');
     if (lobbyScreen) lobbyScreen.style.display = 'none';
     const welcomeBox = document.getElementById('lobby-welcome-box');
@@ -1264,6 +1290,42 @@ class RichupGame {
     });
   }
 
+  setGameMode(mode) {
+    const val = (mode || 'individual').toLowerCase().trim();
+    if (!['individual', 'alliances'].includes(val)) return;
+
+    if (this.roomId && !this.isHost) {
+      this.showToast('Only the room host can change game mode 🔒');
+      return;
+    }
+
+    this.selectedGameMode = val;
+    this.syncGameModeSegmented(val);
+
+    if (this.isHost) {
+      this.applySettings();
+    }
+  }
+
+  syncGameModeSegmented(modeVal) {
+    const val = (modeVal || this.selectedGameMode || 'individual').toLowerCase().trim();
+    this.selectedGameMode = val;
+
+    const el = document.getElementById('setting-game-mode');
+    if (el) el.value = val;
+
+    document.querySelectorAll('#segmented-game-mode .seg-opt').forEach(b => {
+      const bVal = (b.getAttribute('data-val') || '').toLowerCase().trim();
+      b.classList.toggle('active', bVal === val);
+    });
+
+    const container = document.querySelector('.richup-setup-container');
+    const panel = document.getElementById('alliances-panel');
+    const isAlliances = (val === 'alliances');
+    if (container) container.classList.toggle('alliances-open', isAlliances);
+    if (panel) panel.style.display = isAlliances ? 'flex' : 'none';
+  }
+
   applySettings() {
     if (!this.isHost) return;
     const startingCash = parseInt(document.getElementById('setting-cash').value, 10);
@@ -1282,6 +1344,8 @@ class RichupGame {
     const isPublic = privacyEl ? privacyEl.value === 'true' : false;
     const botDiffEl = document.getElementById('setting-bot-difficulty');
     const botDifficulty = this.selectedBotDifficulty || (botDiffEl ? botDiffEl.value : 'balanced');
+    const gameModeEl = document.getElementById('setting-game-mode');
+    const gameMode = this.selectedGameMode || (gameModeEl ? gameModeEl.value : 'individual');
 
     this.sendAction({
       action: 'UPDATE_SETTINGS',
@@ -1298,7 +1362,8 @@ class RichupGame {
         random_events: randomEvents,
         map: mapVal,
         is_public: isPublic,
-        bot_difficulty: botDifficulty
+        bot_difficulty: botDifficulty,
+        game_mode: gameMode
       }
     });
   }
@@ -1361,6 +1426,7 @@ class RichupGame {
       } else {
         this.syncBotDifficultySegmented(this.selectedBotDifficulty || 'balanced');
       }
+      this.syncGameModeSegmented(data.settings.game_mode || 'individual');
 
       let currentMap = data.settings.map || 'classic';
       if (currentMap === 'standard') currentMap = 'classic';
@@ -1374,7 +1440,7 @@ class RichupGame {
 
       // Visual indication for non-host players (keep interactive so clicking gives clear feedback)
       const isHost = this.isHost;
-      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt, #segmented-map .seg-opt, #segmented-bot-difficulty .seg-opt').forEach(el => {
+      document.querySelectorAll('.setup-stepper-btn, .setup-golden-slider, .richup-pill-toggle, #segmented-privacy .seg-opt, #segmented-map .seg-opt, #segmented-bot-difficulty .seg-opt, #segmented-game-mode .seg-opt').forEach(el => {
         el.style.opacity = isHost ? '1' : '0.65';
       });
       const addBotBtn = document.getElementById('btn-add-bot');
@@ -1389,6 +1455,7 @@ class RichupGame {
 
     // Detect switch from LOBBY to PLAYING (or if spectator already on game screen)
     if (data.state === 'PLAYING') {
+      this.hideActionLoader();
       this.closeModal('modal-gameover');
       document.getElementById('screen-welcome').classList.remove('active');
       document.getElementById('game-screen').classList.add('active');
@@ -1592,17 +1659,7 @@ class RichupGame {
       });
     }
 
-    // 8. Vacation / Free parking banner and live board tile pool
-    const jpEl = document.getElementById('nav-jackpot-pill');
-    const jpVal = document.getElementById('jackpot-pool-amount');
-    if (jpEl && jpVal) {
-      if (curr.settings.free_parking_jackpot) {
-        jpEl.style.display = 'flex';
-        jpVal.innerText = `$${curr.free_parking_pool || 0}`;
-      } else {
-        jpEl.style.display = 'none';
-      }
-    }
+    // 8. Live Vacation pool on board tile
     const tileVacEl = document.getElementById('tile-vacation-pool');
     if (tileVacEl) {
       tileVacEl.innerText = `$${curr.free_parking_pool || 0}`;
@@ -2574,6 +2631,9 @@ class RichupGame {
                   <div class="player-name-col">
                     <div class="player-name-text">
                       ${p.name}
+                      ${this.gameState.settings && this.gameState.settings.game_mode === 'alliances' && p.team_id && this.gameState.teams && this.gameState.teams[p.team_id] ? `
+                        <span class="player-status-badge badge-alliance" style="color:${this.gameState.teams[p.team_id].color};">🤝 ${this.escapeHtml(this.gameState.teams[p.team_id].name)}</span>
+                      ` : ''}
                       ${p.is_bot ? '<span class="player-status-badge badge-bot">BOT</span>' : ''}
                       ${p.in_jail ? '<span class="player-status-badge badge-jail">JAIL</span>' : ''}
                       ${p.vacation_skip ? '<span class="player-status-badge badge-vacation">🌴 VACATION</span>' : ''}
@@ -2882,8 +2942,194 @@ class RichupGame {
       startBtn.disabled = this.gameState.players.length < 2;
     }
 
-    // Render lobby chat
+    // Render lobby chat & alliances panel
     this.renderChatMessages();
+    this.renderAlliancesPanel();
+  }
+
+  escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  renderAlliancesPanel() {
+    if (!this.gameState) return;
+    const mode = (this.gameState.settings && this.gameState.settings.game_mode) || 'individual';
+    const isAlliances = (mode === 'alliances');
+    const container = document.querySelector('.richup-setup-container');
+    const panel = document.getElementById('alliances-panel');
+    if (container) container.classList.toggle('alliances-open', isAlliances);
+    if (panel) panel.style.display = isAlliances ? 'flex' : 'none';
+    if (!isAlliances) return;
+
+    const listEl = document.getElementById('alliances-teams-list');
+    const hintEl = document.getElementById('alliances-panel-hint');
+    if (!listEl) return;
+
+    // Avoid wiping an active team name input while the user is typing
+    if (this.editingTeamId && document.activeElement && document.activeElement.id === `team-name-input-${this.editingTeamId}`) {
+      return;
+    }
+
+    const teams = this.gameState.teams || {
+      team_1: { id: 'team_1', name: 'Team Alpha', color: '#38bdf8' },
+      team_2: { id: 'team_2', name: 'Team Omega', color: '#f43f5e' }
+    };
+    const players = this.gameState.players || [];
+    const myPlayer = players.find(p => p.id === this.playerId);
+    const myTeamId = myPlayer ? myPlayer.team_id : null;
+
+    listEl.innerHTML = Object.values(teams).map(team => {
+      const members = players.filter(p => p.team_id === team.id);
+      const isMyTeam = (myTeamId === team.id);
+      const isHostNotInTeam = this.isHost && !isMyTeam;
+      const isEditing = (this.editingTeamId === team.id);
+
+      return `
+        <div class="alliance-team-box ${isHostNotInTeam ? 'clickable-space' : ''}"
+             id="alliance-team-${team.id}"
+             style="--team-color:${team.color};"
+             onclick="game.handleTeamSpaceClick('${team.id}', event)"
+             ondragover="game.onAllianceDragOver(event, '${team.id}')"
+             ondragleave="game.onAllianceDragLeave(event, '${team.id}')"
+             ondrop="game.onAllianceDrop(event, '${team.id}')">
+          <div class="alliance-team-header" onclick="event.stopPropagation();">
+            <div class="alliance-team-name-wrap">
+              <span class="alliance-team-dot" style="background:${team.color};box-shadow:0 0 8px ${team.color};"></span>
+              ${isEditing ? `
+                <input type="text"
+                       id="team-name-input-${team.id}"
+                       class="alliance-team-name-input"
+                       value="${this.escapeHtml(team.name)}"
+                       maxlength="24"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();game.saveTeamName('${team.id}');}else if(event.key==='Escape'){game.cancelEditTeamName();}"
+                       onblur="game.saveTeamName('${team.id}')">
+              ` : `
+                <span class="alliance-team-name-text" title="${this.escapeHtml(team.name)}">${this.escapeHtml(team.name)}</span>
+              `}
+            </div>
+            ${isMyTeam && !isEditing ? `
+              <button type="button" class="alliance-edit-btn" onclick="game.startEditTeamName('${team.id}')" title="Edit your team name">✏️ Edit</button>
+            ` : ''}
+          </div>
+          <div class="alliance-team-members">
+            ${members.length > 0 ? members.map(p => {
+              const isSelf = p.id === this.playerId;
+              return `
+                <div class="alliance-player-chip"
+                     draggable="${this.isHost ? 'true' : 'false'}"
+                     ondragstart="game.onAllianceDragStart(event, '${p.id}')"
+                     onclick="event.stopPropagation();"
+                     style="border-color:${p.color};"
+                     title="${this.isHost ? 'Drag to move player to another team' : this.escapeHtml(p.name)}">
+                  <span class="chip-avatar" style="background-color:${p.color};">${p.avatar}</span>
+                  <span>${this.escapeHtml(p.name)}${isSelf ? ' (You)' : ''}${p.is_bot ? ' 🤖' : ''}</span>
+                </div>
+              `;
+            }).join('') : `
+              <div class="alliance-empty-slot">${this.isHost ? (isHostNotInTeam ? 'Click here to switch to this team or drag a player' : 'Drag players here') : 'No players in this team yet'}</div>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (this.editingTeamId) {
+      const inp = document.getElementById(`team-name-input-${this.editingTeamId}`);
+      if (inp) {
+        inp.focus();
+        inp.select();
+      }
+    }
+
+    if (hintEl) {
+      hintEl.innerText = this.isHost
+        ? 'Tip: Click another team space to switch your spot, or drag player icons to move them. Teammates can edit their team name.'
+        : 'Wait for the room mod to organize teams. You can edit your own team name!';
+    }
+  }
+
+  handleTeamSpaceClick(teamId, event) {
+    if (!this.isHost || !this.gameState) return;
+    if (event && event.target && event.target.closest('.alliance-player-chip, .alliance-team-header')) return;
+    const myPlayer = (this.gameState.players || []).find(p => p.id === this.playerId);
+    if (!myPlayer || myPlayer.team_id === teamId) return;
+    this.sendAction({
+      action: 'CHANGE_TEAM',
+      targetPlayerId: this.playerId,
+      teamId: teamId
+    });
+  }
+
+  onAllianceDragStart(event, playerId) {
+    if (!this.isHost) {
+      event.preventDefault();
+      return;
+    }
+    this.draggedAlliancePlayerId = playerId;
+    if (event.dataTransfer) {
+      event.dataTransfer.setData('text/plain', playerId);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  onAllianceDragOver(event, teamId) {
+    if (!this.isHost) return;
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    const box = document.getElementById(`alliance-team-${teamId}`);
+    if (box) box.classList.add('drag-over');
+  }
+
+  onAllianceDragLeave(event, teamId) {
+    const box = document.getElementById(`alliance-team-${teamId}`);
+    if (box) box.classList.remove('drag-over');
+  }
+
+  onAllianceDrop(event, teamId) {
+    if (!this.isHost) return;
+    event.preventDefault();
+    const box = document.getElementById(`alliance-team-${teamId}`);
+    if (box) box.classList.remove('drag-over');
+    const playerId = (event.dataTransfer && event.dataTransfer.getData('text/plain')) || this.draggedAlliancePlayerId;
+    this.draggedAlliancePlayerId = null;
+    if (!playerId) return;
+    this.sendAction({
+      action: 'CHANGE_TEAM',
+      targetPlayerId: playerId,
+      teamId: teamId
+    });
+  }
+
+  startEditTeamName(teamId) {
+    this.editingTeamId = teamId;
+    this.renderAlliancesPanel();
+  }
+
+  cancelEditTeamName() {
+    this.editingTeamId = null;
+    this.renderAlliancesPanel();
+  }
+
+  saveTeamName(teamId) {
+    const inp = document.getElementById(`team-name-input-${teamId}`);
+    const newName = inp ? inp.value.trim() : '';
+    this.editingTeamId = null;
+    if (newName) {
+      this.sendAction({
+        action: 'RENAME_TEAM',
+        teamId: teamId,
+        name: newName
+      });
+    } else {
+      this.renderAlliancesPanel();
+    }
   }
 
   kickPlayer(targetId) {

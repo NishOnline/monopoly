@@ -10,7 +10,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=20261124_01">
+  <link rel="stylesheet" href="/css/style.css?v=20261126_04">
 </head>
 
 <body>
@@ -30,10 +30,6 @@
     </div>
 
     <div class="nav-center">
-      <div class="jackpot-pill" id="nav-jackpot-pill" style="display: none;">
-        <span>🌴 Vacation:</span>
-        <span id="jackpot-pool-amount">$0</span>
-      </div>
       <div class="spectator-pill" id="nav-spectator-pill" style="display: none;">
         <span>👁️ Spectating Game</span>
       </div>
@@ -224,8 +220,10 @@
               BACK</button>
           </div>
 
-          <!-- Main Glassmorphic Setup Card -->
-          <div class="richup-setup-card">
+          <!-- Setup Main Workspace (shifts left on desktop when Alliances is active) -->
+          <div class="setup-main-workspace" id="setup-main-workspace">
+            <!-- Main Glassmorphic Setup Card -->
+            <div class="richup-setup-card">
             <!-- Left Column: Sliders & Bot Action -->
             <div class="setup-col-left">
               <!-- Starting Cash (1000, 1500, 2000, 2500) -->
@@ -263,6 +261,21 @@
                   <span data-idx="4">150s</span>
                 </div>
                 <input type="hidden" id="setting-timer" value="45">
+              </div>
+
+              <!-- Game Mode Selection (Individual vs Alliances) -->
+              <div class="setup-toggle-card setup-gamemode-left">
+                <div class="setup-toggle-label">GAME MODE</div>
+                <div class="richup-segmented-pill" id="segmented-game-mode">
+                  <button type="button" class="seg-opt active" data-val="individual"
+                    onclick="game.setGameMode('individual')"
+                    title="Individual: Every player for themselves">Individual</button>
+                  <span class="seg-divider">/</span>
+                  <button type="button" class="seg-opt" data-val="alliances"
+                    onclick="game.setGameMode('alliances')"
+                    title="Alliances: Teammates don't pay rent to each other">Alliances 🤝</button>
+                </div>
+                <input type="hidden" id="setting-game-mode" value="individual">
               </div>
 
               <!-- Add AI Bot Button -->
@@ -365,7 +378,7 @@
                 </div>
 
                 <!-- Room Visibility -->
-                <div class="setup-toggle-card">
+                <div class="setup-toggle-card span-2">
                   <div class="setup-toggle-label">ROOM VISIBILITY</div>
                   <div class="richup-segmented-pill" id="segmented-privacy">
                     <button type="button" class="seg-opt" data-val="true">Public</button>
@@ -376,7 +389,7 @@
                 </div>
 
                 <!-- Bot Difficulty Selection -->
-                <div class="setup-toggle-card">
+                <div class="setup-toggle-card span-2">
                   <div class="setup-toggle-label">BOT DIFFICULTY</div>
                   <div class="richup-segmented-pill three-options" id="segmented-bot-difficulty">
                     <button type="button" class="seg-opt" data-val="conscious"
@@ -395,6 +408,19 @@
                 </div>
               </div>
             </div>
+          </div>
+
+            <!-- Alliances Team Builder Panel (Opens right on desktop, down on mobile) -->
+            <aside class="alliances-panel" id="alliances-panel" style="display:none;">
+              <div class="alliances-panel-header">
+                <div class="alliances-panel-title">🤝 ALLIANCES</div>
+                <div class="alliances-panel-subtitle">Teammates don't pay rent on each other's properties.</div>
+              </div>
+              <div class="alliances-teams-list" id="alliances-teams-list">
+                <!-- Populated dynamically via JS -->
+              </div>
+              <div class="alliances-panel-hint" id="alliances-panel-hint"></div>
+            </aside>
           </div>
 
           <!-- Setup Bottom Action Bar -->
@@ -770,20 +796,32 @@
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body"
-        style="max-height:480px;overflow-y:auto;font-size:0.88rem;line-height:1.6;color:var(--text-muted);">
+        style="max-height:500px;overflow-y:auto;font-size:0.88rem;line-height:1.6;color:var(--text-muted);">
         <p style="margin-bottom:12px;"><strong style="color:#fff;">🎯 Goal:</strong> Bankrupt your opponents by buying
-          properties, collecting rent, and constructing houses and hotels!</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎲 Rolling Doubles:</strong> If you roll doubles, you
-          get another turn! Rolling 3 consecutive doubles sends you straight to Jail.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies & Houses:</strong> Collect all
-          properties in a color group to achieve a Monopoly. You can then build up to 4 houses and 1 hotel per property
-          evenly across the group. Rent multiplies dramatically!</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">⚖️ Auctions:</strong> If an unowned property is
-          declined, it is immediately auctioned off to the highest bidder starting from $10.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🤝 Trading:</strong> You can propose trades anytime
-          with other players for properties and cash.</p>
-        <p style="margin-bottom:12px;"><strong style="color:#fff;">🅿️ Free Parking:</strong> Taxes and fines collected
-          are deposited into the Jackpot pool. The player who lands on Free Parking wins the entire pot!</p>
+          properties, collecting rent, and building houses, hotels, and shops!</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🤝 Game Modes (Individual &amp; Alliances):</strong>
+          Play solo in <strong>Individual</strong> mode, or choose <strong>Alliances</strong> in Room Setup to form teams—teammates
+          <strong>do not pay rent</strong> when landing on each other's properties.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🗺️ Classic &amp; Extended Maps:</strong> Choose the
+          standard 40-tile <strong>Classic</strong> board or the 48-tile <strong>Extended</strong> board featuring extra
+          countries, Airports, and a 3rd Utility (up to 15× dice rent when owning all 3).</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🎲 Rolling Doubles &amp; Prison:</strong> Rolling
+          doubles gives you another turn; 3 consecutive doubles sends you to Prison. Escape by rolling doubles, paying a
+          <strong>$50 fine</strong>, or using a Jail Free card. Depending on room settings, jailed owners may collect $0 rent.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🏡 Monopolies, Houses &amp; Advanced Shops 🏪:</strong>
+          Own all properties in a color group to form a Monopoly (2× base rent when unimproved, if enabled) and build up to
+          4 houses + 1 hotel. With <strong>Advanced Shops</strong> enabled, build a Shop on any owned street for
+          <strong>+25% rent</strong> and <strong>+60% mortgage value</strong>.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">⚡ Random Market Events:</strong> Periodic global
+          events (such as Inflation, Tourism Surge, Market Correction, or Wealth Levy) dynamically alter rents, payouts, and taxes.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">⚖️ Auctions, Trading &amp; Debt Recovery:</strong>
+          Declined properties go to a Live Public Auction starting at $10. Propose or negotiate trades anytime—even if you
+          are in <strong>debt (negative cash)</strong>, you can sell/trade unbuilt properties for cash to stay in the game.</p>
+        <p style="margin-bottom:12px;"><strong style="color:#fff;">🤖 AI Bot Difficulty:</strong> Add bots in Room Setup
+          with <strong>Conscious</strong> (casual), <strong>Balanced</strong> (standard), or <strong>Determined</strong>
+          (tactical &amp; ruthless) difficulty.</p>
+        <p style="margin-bottom:0;"><strong style="color:#fff;">🌴 Vacation (Free Parking):</strong> Taxes and fines go
+          into the Vacation pool (shown on the Vacation tile). Landing on Vacation collects the entire pot and skips your next turn.</p>
       </div>
     </div>
   </div>
@@ -889,12 +927,17 @@
     </div>
   </div>
 
+  <!-- Compact Action Loader Overlay -->
+  <div id="action-loader-overlay" class="action-loader-overlay" style="display:none;" aria-hidden="true">
+    <div class="action-loader-spinner"></div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="/js/audio.js?v=20261124_04"></script>
-  <script src="/js/game.js?v=20261124_04"></script>
+  <script src="/js/audio.js?v=20261126_05"></script>
+  <script src="/js/game.js?v=20261126_05"></script>
 </body>
 
 </html>

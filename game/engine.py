@@ -26,7 +26,8 @@ DEFAULT_SETTINGS = {
     "random_events": True,
     "map": "classic",
     "is_public": False,
-    "bot_difficulty": "balanced"
+    "bot_difficulty": "balanced",
+    "game_mode": "individual"
 }
 
 AVATARS = ["🚗", "🚀", "🎩", "🐶", "🐱", "⛵", "💎", "👑"]
@@ -71,6 +72,12 @@ class GameRoom:
         self.players: Dict[str, Dict[str, Any]] = {}
         self.player_order: List[str] = []
         self.current_player_idx = 0
+
+        # Alliances / Teams configuration
+        self.teams: Dict[str, Dict[str, Any]] = {
+            "team_1": {"id": "team_1", "name": "Team Alpha", "color": "#38bdf8"},
+            "team_2": {"id": "team_2", "name": "Team Omega", "color": "#f43f5e"}
+        }
 
         # Board properties status and map configuration
         self.board_tiles: List[Dict[str, Any]] = []
@@ -161,6 +168,10 @@ class GameRoom:
                 diff = str(v).lower()
                 if diff in ["conscious", "balanced", "determined"]:
                     self.settings[k] = diff
+            elif k == "game_mode":
+                mode = str(v).lower()
+                if mode in ["individual", "alliances"]:
+                    self.settings[k] = mode
             elif k in self.settings:
                 self.settings[k] = v
         if "map" in new_settings and self.state == "LOBBY":
@@ -211,13 +222,34 @@ class GameRoom:
             "is_bankrupt": False,
             "properties": [],
             "connected": True,
-            "disconnect_deadline": None
+            "disconnect_deadline": None,
+            "team_id": random.choice(list(self.teams.keys())) if getattr(self, "teams", None) else "team_1"
         }
 
         self.players[player_id] = player
         self.player_order.append(player_id)
         self.log(f"{name} joined the room.", "lobby", "👋", player_id)
         return player
+
+    def set_player_team(self, actor_id: str, target_player_id: str, team_id: str) -> bool:
+        if self.state != "LOBBY" or actor_id != self.host_id:
+            return False
+        if target_player_id not in self.players or team_id not in self.teams:
+            return False
+        self.players[target_player_id]["team_id"] = team_id
+        return True
+
+    def rename_team(self, actor_id: str, team_id: str, new_name: str) -> bool:
+        if self.state != "LOBBY":
+            return False
+        actor = self.players.get(actor_id)
+        if not actor or actor.get("team_id") != team_id or team_id not in self.teams:
+            return False
+        clean_name = str(new_name).strip()[:24]
+        if not clean_name:
+            return False
+        self.teams[team_id]["name"] = clean_name
+        return True
 
     def remove_player(self, player_id: str):
         if player_id not in self.players:
@@ -460,6 +492,15 @@ class GameRoom:
                     self.turn_phase = "WAITING_END_TURN"
                     res["action"] = "owner_in_jail_no_rent"
                     self.log(f"{owner['name']} is in prison! No rent collected for {tile_name}.", "rent", "⛓️", player["id"])
+                elif (
+                    self.settings.get("game_mode", "individual") == "alliances"
+                    and player.get("team_id")
+                    and player.get("team_id") == owner.get("team_id")
+                ):
+                    self.turn_phase = "WAITING_END_TURN"
+                    res["action"] = "teammate_no_rent"
+                    team_name = self.teams.get(player["team_id"], {}).get("name", "Alliance")
+                    self.log(f"🤝 {player['name']} landed on teammate {owner['name']}'s {tile_name} ({team_name}). No rent owed!", "rent", "🤝", player["id"])
                 else:
                     rent = self.calculate_rent(tile_id, steps)
                     res["rent"] = rent
@@ -1614,6 +1655,7 @@ class GameRoom:
             "is_public": getattr(self, "is_public", False) or self.settings.get("is_public", False),
             "state": self.state,
             "settings": self.settings,
+            "teams": getattr(self, "teams", {}),
             "players": players_serialized,
             "current_player_idx": self.current_player_idx,
             "current_player_id": self.player_order[self.current_player_idx] if self.player_order else None,

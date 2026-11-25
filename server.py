@@ -293,8 +293,26 @@ async def handle_ws(request):
                             diff = str(new_settings["bot_difficulty"]).lower().strip()
                             if diff in ["conscious", "balanced", "determined"]:
                                 room.settings["bot_difficulty"] = diff
+                        if "game_mode" in new_settings:
+                            mode = str(new_settings["game_mode"]).lower().strip()
+                            if mode in ["individual", "alliances"]:
+                                room.settings["game_mode"] = mode
                         room.update_settings(new_settings)
                         await broadcast_room(current_room_id)
+
+                elif action == "CHANGE_TEAM":
+                    if current_player_id == room.host_id and room.state == "LOBBY":
+                        target_id = data.get("targetPlayerId") or current_player_id
+                        team_id = data.get("teamId")
+                        if room.set_player_team(current_player_id, target_id, team_id):
+                            await broadcast_room(current_room_id)
+
+                elif action == "RENAME_TEAM":
+                    if room.state == "LOBBY":
+                        team_id = data.get("teamId")
+                        new_name = data.get("name", "")
+                        if room.rename_team(current_player_id, team_id, new_name):
+                            await broadcast_room(current_room_id)
 
                 elif action == "ADD_BOT":
                     if current_player_id == room.host_id and room.state == "LOBBY":
