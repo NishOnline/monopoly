@@ -5622,9 +5622,71 @@ body:has(#screen-welcome.active) .top-nav {
     border-radius: 3px;
     letter-spacing: 0;
   }
+
+  /* Compact Center Command Deck on mobile so buttons never cover board tiles */
+  .board-center {
+    padding: 8px 6px;
+    justify-content: space-evenly;
+    overflow: hidden;
+  }
+
+  .turn-pill {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    gap: 5px;
+  }
+
+  .timer-box {
+    padding: 2px 7px;
+    font-size: 0.74rem;
+  }
+
+  .center-arena {
+    gap: 6px;
+  }
+
+  .dice-container {
+    margin: 2px 0 4px;
+    gap: 16px;
+  }
+
+  .status-prompt {
+    font-size: 0.75rem;
+    line-height: 1.15;
+    min-height: 0;
+  }
+
+  .center-controls {
+    gap: 5px;
+  }
+
+  .action-btn {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    gap: 4px;
+    border-radius: 6px;
+  }
 }
 
 @media (max-width: 480px) {
+  .dice-scene,
+  .dice-cube {
+    --dice-size: 34px;
+    --dice-half-size: 17px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .dice-face {
+    padding: 4px;
+    border-radius: 7px;
+  }
+
+  .dice-dot,
+  .pip {
+    width: 6px;
+    height: 6px;
+  }
   .setup-toggles-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px 10px;
