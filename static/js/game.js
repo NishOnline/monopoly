@@ -542,7 +542,7 @@ class RichupGame {
     const endTurnBtn = document.getElementById('btn-action-end');
     if (endTurnBtn) {
       endTurnBtn.addEventListener('click', () => {
-        if (this.animatingTokens && Object.keys(this.animatingTokens).length > 0) {
+        if (this.animatingTokens && this.animatingTokens[this.playerId] !== undefined) {
           this.showToast('⏳ Wait until movement finishes before ending turn.');
           return;
         }
@@ -983,6 +983,14 @@ class RichupGame {
   sendAction(payload) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
+    } else if (this.roomId && payload && payload.action !== 'PING') {
+      this.showToast('Reconnecting to game server...', 'info');
+      this.quickJoin(this.roomId);
+      setTimeout(() => {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify(payload));
+        }
+      }, 600);
     }
   }
 
@@ -1505,10 +1513,10 @@ class RichupGame {
       console.error('Error in renderTileStates:', e);
     }
 
-    // Check if new dice roll occurred in this state update
-    const diceChanged = data.last_dice && (!prevState || !prevState.last_dice || prevState.last_dice[0] !== data.last_dice[0] || prevState.last_dice[1] !== data.last_dice[1]);
-    const rollPhaseTransition = prevState && prevState.turn_phase === 'WAITING_ROLL' && data.turn_phase !== 'WAITING_ROLL';
-    const isNewDiceRoll = (diceChanged || rollPhaseTransition) && data.last_dice;
+    // Check if new dice roll occurred in this state update (only when server incremented roll_seq)
+    const isNewDiceRoll = (data.roll_seq !== undefined && prevState && prevState.roll_seq !== undefined)
+      ? (data.roll_seq > prevState.roll_seq && Boolean(data.last_dice))
+      : false;
 
     if (isNewDiceRoll) {
       // First dice roll animation plays to completion, then player tokens move!
@@ -1544,6 +1552,16 @@ class RichupGame {
         this.checkIncomingTrades();
       } catch (e) {
         console.error('Error in checkIncomingTrades:', e);
+      }
+    }
+
+    // Keep open Property Inspector modal live-updated when building/selling houses, hotels, or shops
+    const deedModal = document.getElementById('modal-deed');
+    if (deedModal && deedModal.classList.contains('active') && this.inspectedTileId !== undefined && this.inspectedTileId !== null) {
+      try {
+        this.inspectProperty(this.inspectedTileId);
+      } catch (e) {
+        console.error('Error refreshing property inspector:', e);
       }
     }
   }
@@ -2360,7 +2378,7 @@ class RichupGame {
       }
       if (isMyTurn && endTurnBtn) {
         endTurnBtn.style.display = 'flex';
-        const isTokenMoving = Boolean(this.animatingTokens && Object.keys(this.animatingTokens).length > 0);
+        const isTokenMoving = Boolean(currPlayer && this.animatingTokens && this.animatingTokens[currPlayer.id] !== undefined);
         if (isTokenMoving) {
           endTurnBtn.disabled = true;
           endTurnBtn.innerHTML = `<span>⏳ Moving...</span>`;
@@ -3174,6 +3192,7 @@ class RichupGame {
     const owner = state && state.owner ? this.gameState.players.find(p => p.id === state.owner) : null;
     const isMine = state && state.owner === this.playerId;
 
+    this.inspectedTileId = parseInt(tileId, 10);
     const modal = document.getElementById('modal-deed');
     const content = document.getElementById('deed-card-content');
     if (!modal || !content) return;
@@ -3370,13 +3389,11 @@ class RichupGame {
 
     this.sendAction({ action: 'BUILD_SHOP', tileId: tileId });
     window.soundEngine.buildHouse();
-    this.closeAllModals();
   }
 
   sellShop(tileId) {
     this.sendAction({ action: 'SELL_SHOP', tileId: tileId });
     window.soundEngine.sellHouse();
-    this.closeAllModals();
   }
 
   buildHouse(tileId) {
@@ -3438,7 +3455,6 @@ class RichupGame {
 
     this.sendAction({ action: 'BUILD_HOUSE', tileId: tileId });
     window.soundEngine.buildHouse();
-    this.closeAllModals();
   }
 
   sellHouse(tileId) {
@@ -3473,7 +3489,6 @@ class RichupGame {
     }
 
     this.sendAction({ action: 'SELL_HOUSE', tileId: tileId });
-    this.closeAllModals();
   }
 
   mortgageProperty(tileId) {
@@ -4493,10 +4508,12 @@ class RichupGame {
   closeModal(modalId) {
     const el = document.getElementById(modalId);
     if (el) el.classList.remove('active');
+    if (modalId === 'modal-deed') this.inspectedTileId = null;
   }
 
   closeAllModals() {
     document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
+    this.inspectedTileId = null;
   }
 
   displayReaction(msg) {

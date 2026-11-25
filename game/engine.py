@@ -91,6 +91,7 @@ class GameRoom:
         # Game state tracking
         self.turn_phase = "WAITING_ROLL"  # WAITING_ROLL, LANDED_ACTION, WAITING_END_TURN, AUCTION, DEBT
         self.last_dice = [1, 1]
+        self.roll_seq = 0
         self.consecutive_doubles = 0
         self.free_parking_pool = 0
         self.last_card = None
@@ -320,6 +321,7 @@ class GameRoom:
         d1 = random.randint(1, 6)
         d2 = random.randint(1, 6)
         self.last_dice = [d1, d2]
+        self.roll_seq += 1
         is_double = (d1 == d2)
 
         self.log(f"{curr['name']} rolled {d1} and {d2} ({d1 + d2})", "roll", "🎲", curr["id"])
@@ -1001,6 +1003,8 @@ class GameRoom:
         curr = self.get_current_player()
         if curr["id"] != player_id:
             return False
+        if self.turn_phase == "LANDED_ACTION":
+            self.pass_property(player_id)
         if self.turn_phase not in ["WAITING_END_TURN"]:
             return False
         # Cannot end turn while in negative balance
@@ -1661,6 +1665,7 @@ class GameRoom:
             "current_player_id": self.player_order[self.current_player_idx] if self.player_order else None,
             "turn_phase": self.turn_phase,
             "last_dice": self.last_dice,
+            "roll_seq": self.roll_seq,
             "consecutive_doubles": self.consecutive_doubles,
             "free_parking_pool": self.free_parking_pool,
             "last_card": self.last_card,
