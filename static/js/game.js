@@ -1664,6 +1664,21 @@ class RichupGame {
       window.soundEngine.moneyGain();
     }
 
+    // 7. Toast notification when a trade is accepted or declined
+    if (curr.trade_history && prev.trade_history) {
+      const prevIds = new Set(prev.trade_history.map(t => t.id));
+      curr.trade_history.forEach(t => {
+        if (!prevIds.has(t.id) && (t.sender_id === this.playerId || t.receiver_id === this.playerId)) {
+          const partnerName = t.sender_id === this.playerId ? t.receiver_name : t.sender_name;
+          if (t.status === 'ACCEPTED') {
+            this.showToast(`Trade with ${this.escapeHtml(partnerName)} accepted! 🎉`);
+          } else if (t.status === 'DECLINED') {
+            this.showToast(`Trade with ${this.escapeHtml(partnerName)} declined ❌`, 'error');
+          }
+        }
+      });
+    }
+
     // 7. Flying cash delta (+/- flying text for 2 sec, deduplicated)
     if (curr.players) {
       curr.players.forEach(p => {
