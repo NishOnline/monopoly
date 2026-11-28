@@ -2742,12 +2742,34 @@ class RichupGame {
     // Activity log feed (Real-time game event log only - no chat per instructions)
     const logStreamEl = document.getElementById('log-stream');
     if (logStreamEl && this.gameState.logs) {
-      logStreamEl.innerHTML = this.gameState.logs.map(log => `
-        <div class="log-entry ${log.category}">
-          <span class="log-icon">${log.icon || '🎲'}</span>
-          <span class="log-text">${log.text}</span>
-        </div>
-      `).join('');
+      const players = this.gameState.players || [];
+      logStreamEl.innerHTML = this.gameState.logs.map(log => {
+        let p = log.player_id ? players.find(x => x.id === log.player_id) : null;
+        if (!p && log.text) {
+          const lower = log.text.toLowerCase();
+          p = players.find(x => x.name && lower.includes(x.name.toLowerCase()));
+        }
+        const pColor = p ? p.color : '';
+        const borderStyle = pColor
+          ? `style="border-left-color: ${pColor}; border-color: color-mix(in srgb, ${pColor} 28%, rgba(255,255,255,0.08)); border-left-width: 4px; background: color-mix(in srgb, ${pColor} 9%, rgba(22, 28, 44, 0.88));"`
+          : '';
+        const formattedText = this.formatActivityLogText(log.text || '', log);
+        const timeStr = log.time
+          ? new Date(log.time * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '';
+
+        return `
+          <div class="log-entry ${this.escapeHtml(log.category || 'game')}" ${borderStyle}>
+            <div class="log-icon-badge" ${pColor ? `style="border-color: color-mix(in srgb, ${pColor} 45%, transparent);"` : ''}>
+              ${log.icon || '🎲'}
+            </div>
+            <div class="log-content">
+              <div class="log-text">${formattedText}</div>
+            </div>
+            ${timeStr ? `<span class="log-time">${timeStr}</span>` : ''}
+          </div>
+        `;
+      }).join('');
       logStreamEl.scrollTop = logStreamEl.scrollHeight;
     }
 
@@ -2996,6 +3018,36 @@ class RichupGame {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  formatActivityLogText(rawText, log) {
+    let safe = this.escapeHtml(rawText);
+    const lowerAll = rawText.toLowerCase();
+
+    // Determine whether dollar amounts in this log represent a gain or deduction
+    const isGainVerb = (before) =>
+      /\b(collected|received|gained|earned|refund|payout|won\s+\$|mortgaged|sold)\b/i.test(before);
+    const isLossVerb = (before) =>
+      /\b(paid|pay|bought|purchased|built|unmortgaged|lost|fined|deducted|tax|owed|bid|spent)\b/i.test(before);
+
+    safe = safe.replace(/([+-])?\$(\d[\d,]*)/g, (match, sign, digits, offset) => {
+      if (sign === '+') {
+        return `<span class="log-money-gain">+$${digits}</span>`;
+      }
+      if (sign === '-') {
+        return `<span class="log-money-loss">-$${digits}</span>`;
+      }
+      const before = safe.slice(Math.max(0, offset - 50), offset);
+      if (isGainVerb(before)) {
+        return `<span class="log-money-gain">+$${digits}</span>`;
+      }
+      if (isLossVerb(before) || lowerAll.includes('negative balance')) {
+        return `<span class="log-money-loss">-$${digits}</span>`;
+      }
+      return `<span class="log-money-neutral">$${digits}</span>`;
+    });
+
+    return safe;
   }
 
   renderAlliancesPanel() {
@@ -3332,7 +3384,7 @@ class RichupGame {
         ${isMine && !this.isSpectator ? `
           <div class="deed-controls">
             ${tile.type === 'property' && state.houses < 5 && !state.mortgaged ? `
-              <button class="btn-primary" style="padding:8px;font-size:0.85rem;" onclick="game.buildHouse(${tileId})">
+              <button class="btn-primary deed-build-btn ${(Date.now() < (this.buildHouseCooldownUntil || 0)) ? 'cooling-down' : ''}" style="padding:8px;font-size:0.85rem;" onclick="game.buildHouse(${tileId})">
                 ${state.houses === 4 ? `🏨 Build Hotel ($${tile.house_cost})` : `🏠 Build House ($${tile.house_cost})`}
               </button>
             ` : ''}
@@ -3398,6 +3450,9 @@ class RichupGame {
   }
 
   buildHouse(tileId) {
+    if (Date.now() < (this.buildHouseCooldownUntil || 0)) {
+      return;
+    }
     const tid = parseInt(tileId, 10);
     const tile = this.boardData && this.boardData.tiles ? this.boardData.tiles[tid] : null;
     const myPlayer = this.gameState && this.gameState.players ? this.gameState.players.find(p => p.id === this.playerId) : null;
@@ -3456,6 +3511,14 @@ class RichupGame {
 
     this.sendAction({ action: 'BUILD_HOUSE', tileId: tileId });
     window.soundEngine.buildHouse();
+
+    this.buildHouseCooldownUntil = Date.now() + 1000;
+    document.querySelectorAll('.deed-build-btn').forEach(btn => btn.classList.add('cooling-down'));
+    if (this._buildCooldownTimer) clearTimeout(this._buildCooldownTimer);
+    this._buildCooldownTimer = setTimeout(() => {
+      this.buildHouseCooldownUntil = 0;
+      document.querySelectorAll('.deed-build-btn').forEach(btn => btn.classList.remove('cooling-down'));
+    }, 1000);
   }
 
   sellHouse(tileId) {
@@ -3841,7 +3904,11 @@ class RichupGame {
 
   checkIncomingTrades() {
     if (!this.gameState || !this.gameState.active_trades || this.isSpectator) return;
-    const incoming = this.gameState.active_trades.find(t => t.receiver_id === this.playerId && t.status === 'PENDING');
+    const incoming = this.gameState.active_trades.find(
+      t => t.receiver_id === this.playerId &&
+           t.status === 'PENDING' &&
+           !(this.heldIncomingTradeIds && this.heldIncomingTradeIds.has(t.id))
+    );
     const modal = document.getElementById('modal-incoming-trade');
     if (!incoming) {
       if (modal) modal.classList.remove('active');
@@ -3850,11 +3917,6 @@ class RichupGame {
     }
 
     this.currentIncomingTradeId = incoming.id;
-
-    // If user clicked cross (✕) to hold this trade popup, keep it closed so they interact from sidebar Trades menu
-    if (this.heldIncomingTradeIds && this.heldIncomingTradeIds.has(incoming.id)) {
-      return;
-    }
 
     const content = document.getElementById('incoming-trade-content');
     if (content) {
@@ -3868,8 +3930,12 @@ class RichupGame {
         return `${t.name} (${t.country || ''})`;
       }).join(', ') || 'None';
 
+      const headerLabel = incoming.is_counter
+        ? `⚖️ Counter-Offer (Negotiated) from ${this.escapeHtml(incoming.sender_name)}`
+        : `Trade Offer from ${this.escapeHtml(incoming.sender_name)}`;
+
       content.innerHTML = `
-        <div style="font-size:1.1rem;font-weight:700;margin-bottom:12px;">Trade Offer from ${incoming.sender_name}</div>
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:12px;">${headerLabel}</div>
         <div style="background:var(--bg-surface);padding:12px;border-radius:8px;margin-bottom:12px;">
           <div style="color:#34d399;font-weight:700;">They Offer You:</div>
           <div>Cash: $${incoming.offer.cash}</div>

@@ -1540,6 +1540,8 @@ class GameRoom:
         new_trade_id = self.create_trade(player_id, partner_id, offer, request)
         if not new_trade_id:
             return None
+        if new_trade_id in self.active_trades:
+            self.active_trades[new_trade_id]["is_counter"] = True
 
         # Archive original trade as COUNTERED
         orig["status"] = "COUNTERED"
