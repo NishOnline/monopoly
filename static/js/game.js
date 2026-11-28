@@ -132,6 +132,7 @@ class RichupGame {
     const topNav = document.querySelector('.top-nav');
     if (topNav) topNav.style.display = 'none';
     this.initDOM();
+    this.initGmailAuth();
     this.loadProfileFromStorage();
     await this.fetchBoardData();
     this.renderBoardSkeleton();
@@ -1345,7 +1346,7 @@ class RichupGame {
     const parkingJackpot = document.getElementById('setting-parking') ? document.getElementById('setting-parking').value === 'true' : true;
     const auctionOnDecline = document.getElementById('setting-auction') ? document.getElementById('setting-auction').value === 'true' : true;
     const doubleRent = document.getElementById('setting-double-rent') ? document.getElementById('setting-double-rent').value === 'true' : true;
-    const prisonRent = document.getElementById('setting-prison-rent') ? document.getElementById('setting-prison-rent').value === 'true' : true;
+    const rentWhileInPrison = document.getElementById('setting-prison-rent') ? document.getElementById('setting-prison-rent').value === 'true' : false;
     const evenBuild = document.getElementById('setting-even-build') ? document.getElementById('setting-even-build').value === 'true' : false;
     const mortgage = document.getElementById('setting-mortgage') ? document.getElementById('setting-mortgage').value === 'true' : true;
     const advancedShops = document.getElementById('setting-advanced-shops') ? document.getElementById('setting-advanced-shops').value === 'true' : true;
@@ -1367,7 +1368,7 @@ class RichupGame {
         free_parking_jackpot: parkingJackpot,
         auction_on_decline: auctionOnDecline,
         double_rent_full_set: doubleRent,
-        no_rent_in_prison: prisonRent,
+        no_rent_in_prison: !rentWhileInPrison,
         even_build: evenBuild,
         mortgage_enabled: mortgage,
         advanced_shops: advancedShops,
@@ -1427,7 +1428,7 @@ class RichupGame {
       }
       this.syncPillToggle('toggle-auction', 'setting-auction', Boolean(data.settings.auction_on_decline), 'green');
       this.syncPillToggle('toggle-double-rent', 'setting-double-rent', data.settings.double_rent_full_set !== false, 'gold');
-      this.syncPillToggle('toggle-prison-rent', 'setting-prison-rent', data.settings.no_rent_in_prison !== false, 'gold');
+      this.syncPillToggle('toggle-prison-rent', 'setting-prison-rent', data.settings.no_rent_in_prison === false, 'gold');
       this.syncPillToggle('toggle-mortgage', 'setting-mortgage', data.settings.mortgage_enabled !== false, 'gold');
       this.syncPillToggle('toggle-even-build', 'setting-even-build', data.settings.even_build === true, 'gold');
       this.syncPillToggle('toggle-advanced-shops', 'setting-advanced-shops', data.settings.advanced_shops !== false, 'gold');
@@ -4550,6 +4551,262 @@ class RichupGame {
       toast.style.transform = 'translateY(10px)';
       setTimeout(() => toast.remove(), 300);
     }, 2800);
+  }
+
+  // ================= Gmail-Only Authentication =================
+  initGmailAuth() {
+    this.gmailUser = null;
+    try {
+      const saved = localStorage.getItem('richup_gmail_user');
+      if (saved) this.gmailUser = JSON.parse(saved);
+    } catch (e) {
+      this.gmailUser = null;
+    }
+    this.updateLoginButtonUI();
+
+    ['btn-login-main', 'btn-login-dummy'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openLoginModal();
+        });
+      }
+    });
+
+    const loginBackdrop = document.getElementById('modal-login');
+    if (loginBackdrop) {
+      loginBackdrop.addEventListener('click', (e) => {
+        if (e.target === loginBackdrop) {
+          this.closeModal('modal-login');
+        }
+      });
+    }
+
+    const googleRichupBtn = document.getElementById('btn-google-richup');
+    if (googleRichupBtn) {
+      googleRichupBtn.addEventListener('click', () => {
+        this.triggerGooglePopupLogin();
+      });
+    }
+
+    const switchBtn = document.getElementById('btn-gmail-switch');
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => {
+        this.triggerGooglePopupLogin();
+      });
+    }
+
+    const logoutBtn = document.getElementById('btn-gmail-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => this.signOutGmail());
+    }
+
+    // Load Firebase / Google OAuth config from server
+    fetch('/api/auth/config')
+      .then(r => r.json())
+      .then(cfg => {
+        this.googleClientId = (cfg && cfg.googleClientId) || '';
+        this.firebaseConfig = (cfg && cfg.firebaseConfig) || null;
+        if (this.firebaseConfig && this.firebaseConfig.apiKey) {
+          this.initFirebaseAuth(this.firebaseConfig);
+        }
+      })
+      .catch(() => {});
+  }
+
+  initFirebaseAuth(cfg) {
+    const setupFb = () => {
+      if (window.firebase && window.firebase.auth) {
+        if (!window.firebase.apps.length) {
+          window.firebase.initializeApp(cfg);
+        }
+        this.firebaseAuth = window.firebase.auth();
+      } else {
+        setTimeout(setupFb, 300);
+      }
+    };
+    setupFb();
+  }
+
+  async triggerGooglePopupLogin() {
+    // 1. Firebase GoogleAuthProvider popup (opens Google's native Choose an Account window)
+    if (this.firebaseAuth && window.firebase && window.firebase.auth) {
+      try {
+        const provider = new window.firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await this.firebaseAuth.signInWithPopup(provider);
+        const u = result && result.user;
+        if (u) {
+          const email = (u.email || '').toLowerCase();
+          if (email && !(email.endsWith('@gmail.com') || email.endsWith('@googlemail.com'))) {
+            await this.firebaseAuth.signOut();
+            this.showToast('Only Gmail (@gmail.com) accounts are allowed.', 'error');
+            return;
+          }
+          this.completeGmailSignIn({
+            email: email,
+            name: (u.displayName || email.split('@')[0] || 'Player').slice(0, 16),
+            picture: u.photoURL || ''
+          });
+        }
+      } catch (err) {
+        if (err && err.code !== 'auth/popup-closed-by-user') {
+          this.showToast(err.message || 'Google sign-in failed.', 'error');
+        }
+      }
+      return;
+    }
+
+    // 2. Fallback: Google Identity Services OAuth2 token popup if GOOGLE_CLIENT_ID is set
+    if (this.googleClientId && window.google && window.google.accounts && window.google.accounts.oauth2) {
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: this.googleClientId,
+        scope: 'openid email profile',
+        prompt: 'select_account',
+        callback: async (tokenResp) => {
+          if (!tokenResp || !tokenResp.access_token) return;
+          try {
+            const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResp.access_token}` }
+            });
+            const info = await res.json();
+            const email = (info.email || '').toLowerCase();
+            if (!email || !(email.endsWith('@gmail.com') || email.endsWith('@googlemail.com'))) {
+              this.showToast('Only Gmail (@gmail.com) accounts are allowed.', 'error');
+              return;
+            }
+            this.completeGmailSignIn({
+              email,
+              name: (info.name || email.split('@')[0]).slice(0, 16),
+              picture: info.picture || ''
+            });
+          } catch (e) {
+            this.showToast('Google sign-in failed.', 'error');
+          }
+        }
+      });
+      client.requestAccessToken();
+      return;
+    }
+
+    // 3. Not configured yet -> show concise setup hint inside the popover
+    const hint = document.getElementById('firebase-setup-hint');
+    if (hint) hint.style.display = 'block';
+    this.showToast('Add Firebase config env vars in Render to enable Google popup.', 'warning');
+  }
+
+  openLoginModal() {
+    this.renderLoginModal();
+    this.openModal('modal-login');
+  }
+
+  renderLoginModal() {
+    const loggedInView = document.getElementById('gmail-logged-in-view');
+    const signInView = document.getElementById('gmail-signin-view');
+    const savedWrap = document.getElementById('gmail-saved-accounts-wrap');
+    const savedList = document.getElementById('gmail-saved-accounts-list');
+
+    if (this.gmailUser) {
+      if (loggedInView) loggedInView.style.display = 'block';
+      if (signInView) signInView.style.display = 'none';
+      const avatarEl = document.getElementById('gmail-profile-avatar');
+      const nameEl = document.getElementById('gmail-profile-name');
+      const emailEl = document.getElementById('gmail-profile-email');
+      if (avatarEl) {
+        if (this.gmailUser.picture) {
+          avatarEl.innerHTML = `<img src="${this.escapeHtml(this.gmailUser.picture)}" alt="Avatar">`;
+        } else {
+          avatarEl.textContent = (this.gmailUser.name || this.gmailUser.email || 'G')[0].toUpperCase();
+        }
+      }
+      if (nameEl) nameEl.textContent = this.gmailUser.name || '';
+      if (emailEl) emailEl.textContent = this.gmailUser.email || '';
+    } else {
+      if (loggedInView) loggedInView.style.display = 'none';
+      if (signInView) signInView.style.display = 'block';
+    }
+
+    // Render saved Gmail accounts for 1-click selection
+    let savedAccounts = [];
+    try {
+      savedAccounts = JSON.parse(localStorage.getItem('richup_saved_gmails') || '[]');
+    } catch (e) {
+      savedAccounts = [];
+    }
+    if (savedWrap && savedList) {
+      if (savedAccounts.length > 0) {
+        savedWrap.style.display = 'block';
+        savedList.innerHTML = savedAccounts.map((acc, idx) => `
+          <button type="button" class="gmail-account-item" data-idx="${idx}">
+            <div class="gmail-mini-dot">
+              ${acc.picture ? `<img src="${this.escapeHtml(acc.picture)}" alt="">` : this.escapeHtml((acc.name || acc.email || 'G')[0].toUpperCase())}
+            </div>
+            <div style="min-width:0; flex:1;">
+              <div style="font-weight:700; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(acc.name || acc.email)}</div>
+              <div style="font-size:0.75rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(acc.email)}</div>
+            </div>
+          </button>
+        `).join('');
+        savedList.querySelectorAll('.gmail-account-item').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const acc = savedAccounts[parseInt(btn.getAttribute('data-idx'), 10)];
+            if (acc) this.completeGmailSignIn(acc);
+          });
+        });
+      } else {
+        savedWrap.style.display = 'none';
+      }
+    }
+  }
+
+  completeGmailSignIn(user) {
+    this.gmailUser = user;
+    localStorage.setItem('richup_gmail_user', JSON.stringify(user));
+
+    // Save to quick-select Gmail list
+    try {
+      let list = JSON.parse(localStorage.getItem('richup_saved_gmails') || '[]');
+      list = [user, ...list.filter(x => x.email !== user.email)].slice(0, 5);
+      localStorage.setItem('richup_saved_gmails', JSON.stringify(list));
+    } catch (e) {}
+
+    if (user.name) {
+      this.playerName = user.name;
+      localStorage.setItem('richup_player_name', user.name);
+      const createName = document.getElementById('input-player-name');
+      const joinName = document.getElementById('input-join-name');
+      if (createName) createName.value = user.name;
+      if (joinName) joinName.value = user.name;
+    }
+
+    this.updateLoginButtonUI();
+    this.closeModal('modal-login');
+    this.showToast(`Signed in with ${user.email} 📧`);
+  }
+
+  signOutGmail() {
+    this.gmailUser = null;
+    localStorage.removeItem('richup_gmail_user');
+    if (this.firebaseAuth) {
+      this.firebaseAuth.signOut().catch(() => {});
+    }
+    this.updateLoginButtonUI();
+    this.renderLoginModal();
+    this.showToast('Signed out of Gmail');
+  }
+
+  updateLoginButtonUI() {
+    const label = this.gmailUser
+      ? `📧 ${this.escapeHtml(this.gmailUser.name || this.gmailUser.email.split('@')[0])}`
+      : 'LOG IN';
+    ['btn-login-main', 'btn-login-dummy'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.innerHTML = label;
+        btn.title = this.gmailUser ? `Signed in as ${this.gmailUser.email}` : 'Sign in with Gmail';
+      }
+    });
   }
 }
 

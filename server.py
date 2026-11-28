@@ -814,6 +814,72 @@ async def api_rooms_list(request):
     return web.json_response({"rooms": open_rooms})
 
 
+async def api_auth_config(request):
+    firebase_cfg = None
+    raw_fb = os.environ.get("FIREBASE_CONFIG", "").strip()
+    if raw_fb:
+        try:
+            firebase_cfg = json.loads(raw_fb)
+        except Exception:
+            firebase_cfg = None
+    elif os.environ.get("FIREBASE_API_KEY") and os.environ.get("FIREBASE_AUTH_DOMAIN"):
+        firebase_cfg = {
+            "apiKey": os.environ.get("FIREBASE_API_KEY", "").strip(),
+            "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", "").strip(),
+            "projectId": os.environ.get("FIREBASE_PROJECT_ID", "").strip(),
+            "appId": os.environ.get("FIREBASE_APP_ID", "").strip(),
+        }
+    return web.json_response({
+        "googleClientId": os.environ.get("GOOGLE_CLIENT_ID", "").strip(),
+        "firebaseConfig": firebase_cfg
+    })
+
+
+async def api_auth_google(request):
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    if not client_id:
+        return web.json_response({"error": "Google Sign-In is not configured on the server."}, status=400)
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body."}, status=400)
+
+    credential = (body.get("credential") or "").strip()
+    if not credential:
+        return web.json_response({"error": "Missing Google credential."}, status=400)
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": credential},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status != 200:
+                    return web.json_response({"error": "Invalid or expired Google token."}, status=401)
+                info = await resp.json()
+    except Exception as e:
+        logging.error(f"Google token verification failed: {e}")
+        return web.json_response({"error": "Failed to verify Google token."}, status=502)
+
+    if info.get("aud") != client_id:
+        return web.json_response({"error": "Token audience mismatch."}, status=401)
+
+    email = (info.get("email") or "").strip().lower()
+    if not email or not (email.endswith("@gmail.com") or email.endswith("@googlemail.com")):
+        return web.json_response({"error": "Only Gmail (@gmail.com) accounts are allowed."}, status=403)
+
+    name = (info.get("name") or email.split("@")[0]).strip()[:16]
+    picture = (info.get("picture") or "").strip()
+    return web.json_response({
+        "user": {
+            "email": email,
+            "name": name,
+            "picture": picture
+        }
+    })
+
+
 async def on_startup(app):
     app["tick_task"] = asyncio.create_task(game_tick_loop())
 
@@ -840,6 +906,8 @@ def init_app():
     app.router.add_get("/ws", handle_ws)
     app.router.add_get("/api/board", api_board_info)
     app.router.add_get("/api/rooms", api_rooms_list)
+    app.router.add_get("/api/auth/config", api_auth_config)
+    app.router.add_post("/api/auth/google", api_auth_google)
 
     # Static assets
     app.router.add_static("/css/", path=os.path.join(STATIC_DIR, "css"), name="css")

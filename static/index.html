@@ -313,12 +313,12 @@
                   <!-- Rent While in Prison (Gold when ON) -->
                   <div class="setup-toggle-card">
                     <div class="setup-toggle-label">RENT WHILE IN PRISON</div>
-                    <button type="button" class="richup-pill-toggle on gold" id="toggle-prison-rent"
+                    <button type="button" class="richup-pill-toggle off gold" id="toggle-prison-rent"
                       data-setting="setting-prison-rent" data-color="gold">
-                      <span class="toggle-text">ON</span>
+                      <span class="toggle-text">OFF</span>
                       <span class="toggle-knob"></span>
                     </button>
-                    <input type="hidden" id="setting-prison-rent" value="true">
+                    <input type="hidden" id="setting-prison-rent" value="false">
                   </div>
 
                   <!-- Mortgage Properties (Gold when ON) -->
@@ -937,6 +937,59 @@
     </div>
   </div>
 
+  <!-- Richup-Style Floating Login Popover (Gmail / Google Only) -->
+  <div class="richup-login-popover-backdrop" id="modal-login">
+    <div class="richup-login-popover" id="richup-login-popover">
+      <!-- Logged-in Account View -->
+      <div id="gmail-logged-in-view" style="display:none; text-align:center;">
+        <div id="gmail-profile-avatar" class="gmail-avatar-circle">G</div>
+        <div id="gmail-profile-name" style="font-size:1.05rem; font-weight:800; color:#fff; margin-top:10px;"></div>
+        <div id="gmail-profile-email" style="font-size:0.8rem; color:#94a3b8; margin-bottom:14px;"></div>
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <button type="button" class="btn-secondary" id="btn-gmail-switch" style="flex:1; padding:9px; font-size:0.82rem;">Switch Gmail</button>
+          <button type="button" class="btn-danger" id="btn-gmail-logout" style="flex:1; padding:9px; font-size:0.82rem;">Sign Out</button>
+        </div>
+      </div>
+
+      <!-- Sign-in View (Matching Screenshot Style, Google/Gmail Only) -->
+      <div id="gmail-signin-view">
+        <div class="login-popover-heading">Choose a way to log in:</div>
+
+        <!-- Blue Richup-Style Google Button (Opens Google Account Chooser Popup) -->
+        <button type="button" class="btn-google-richup" id="btn-google-richup">
+          <span class="google-g-badge">G</span>
+          <span class="google-btn-text">Google</span>
+        </button>
+
+        <div id="firebase-setup-hint" style="display:none; margin-top:10px; padding:8px 10px; border-radius:8px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:#fbbf24; font-size:0.72rem; line-height:1.35; text-align:left;">
+          Add <strong>FIREBASE_API_KEY</strong>, <strong>FIREBASE_AUTH_DOMAIN</strong> &amp; <strong>FIREBASE_PROJECT_ID</strong> in Render Environment Variables to enable the Google Account popup.
+        </div>
+
+        <div class="login-popover-terms">
+          By continuing you agree to the <span>Terms of Service</span> and <span>Privacy Policy</span>
+        </div>
+
+        <div class="login-why-section">
+          <div class="login-why-title">Why login?</div>
+          <div class="login-why-grid">
+            <div class="login-why-item">
+              <div class="login-why-icon">😊</div>
+              <div class="login-why-label">Unique<br>Identity</div>
+            </div>
+            <div class="login-why-item">
+              <div class="login-why-icon">📊</div>
+              <div class="login-why-label">Track<br>Statistics</div>
+            </div>
+            <div class="login-why-item">
+              <div class="login-why-icon">🏪</div>
+              <div class="login-why-label">Special<br>Features</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Compact Action Loader Overlay -->
   <div id="action-loader-overlay" class="action-loader-overlay" style="display:none;" aria-hidden="true">
     <div class="action-loader-spinner"></div>
@@ -946,6 +999,9 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="/js/audio.js?v=20261126_05"></script>
   <script src="/js/game.js?v=20261126_12"></script>
 </body>
